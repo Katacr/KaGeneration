@@ -1,30 +1,69 @@
 package org.katacr.kaGeneration;
 
-import org.bukkit.Material;
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandSender;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockFormEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
-public final class KaGeneration extends JavaPlugin implements Listener {
+public class KaGeneration extends JavaPlugin implements Listener {
 
     @Override
     public void onEnable() {
+        // 注册事件监听器
         getServer().getPluginManager().registerEvents(this, this);
-        getLogger().info("空岛矿石插件已启用 - 水和岩浆交汇生成钻石矿石");
+
+        // 注册命令
+        this.getCommand("kageneration").setExecutor(this);
+        this.getCommand("kg").setExecutor(this);
+
+        getLogger().info(ChatColor.GREEN + "空岛矿石生成插件已启用");
     }
 
     @Override
     public void onDisable() {
-        getLogger().info("空岛矿石插件已卸载");
+        getLogger().info(ChatColor.RED + "插件已禁用");
     }
 
     @EventHandler
     public void onStoneGeneration(BlockFormEvent event) {
-        // 只处理水和岩浆交汇形成石头的情况
-        if (event.getNewState().getType() == Material.COBBLESTONE) {
-            // 将新生成的石头替换为钻石矿石
-            event.getNewState().setType(Material.DIAMOND_ORE);
+        // 保持原始功能：只替换石头为钻石矿
+        if (event.getNewState().getType() == org.bukkit.Material.STONE) {
+            event.getNewState().setType(org.bukkit.Material.DIAMOND_ORE);
+        }
+    }
+
+    @Override
+    public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
+        // 只处理重载命令
+        if (args.length == 1 && args[0].equalsIgnoreCase("reload")) {
+            // 重载插件
+            reloadPlugin(sender);
+            return true;
+        }
+
+        return false;
+    }
+
+    private void reloadPlugin(CommandSender sender) {
+        // 检查权限
+        if (!sender.hasPermission("kageneration.reload")) {
+            sender.sendMessage(ChatColor.RED + "你没有执行此命令的权限！");
+            return;
+        }
+
+        try {
+            // 重新加载Bukkit插件
+            Bukkit.getPluginManager().disablePlugin(this);
+            Bukkit.getPluginManager().enablePlugin(this);
+
+            sender.sendMessage(ChatColor.GREEN + "插件已成功重载！");
+        } catch (Exception e) {
+            sender.sendMessage(ChatColor.RED + "重载失败: " + e.getMessage());
+            getLogger().severe("插件重载失败: " + e.getMessage());
         }
     }
 }
