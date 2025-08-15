@@ -18,6 +18,9 @@ permissions:
   kageneration.reload:
     description: 允许重载插件
     default: op
+  kageneration.help:
+    description: 允许查看插件帮助
+    default: true
   kageneration.info:
     description: 允许查看插件配置信息
     default: true

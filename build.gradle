@@ -9,6 +9,15 @@ version = '1.0'
 repositories {
     mavenCentral()
     maven {
+        name = "PaperMC" // PaperMC 仓库
+        url = 'https://repo.papermc.io/repository/maven-public/'
+    }
+    maven {
+        name = "placeholderapi" // PlaceholderAPI 仓库
+        url = 'https://repo.extendedclip.com/releases/'
+    }
+
+    maven {
         name = "spigotmc-repo"
         url = "https://hub.spigotmc.org/nexus/content/repositories/snapshots/"
     }
@@ -20,6 +29,8 @@ repositories {
 
 dependencies {
     compileOnly("org.spigotmc:spigot-api:1.18.2-R0.1-SNAPSHOT")
+    compileOnly('org.jetbrains:annotations:24.0.1')
+    compileOnly('me.clip:placeholderapi:2.11.6')
 }
 
 tasks {
