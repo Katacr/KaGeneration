@@ -1,8 +1,8 @@
 # KaGeneration 矿石生成配置
 # 注意：每个组所有矿石的概率合计应为 100 ！
 Setting:
-  get_lava_bucket: true  # 是否启用黑曜石转换岩浆桶功能
-  allow_water_in_nether: true  # 是否允许在下界放置水桶
+  get_lava_bucket: false  # 是否启用空桶右键黑曜石转换岩浆桶
+  allow_water_in_nether: false  # 是否允许在下界放置水桶
   generate_water_from_ice: true  # 是否允许在下界破坏冰块生成水源
 
 # 世界白名单（仅在这些世界生效）
