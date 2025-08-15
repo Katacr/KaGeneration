@@ -18,7 +18,15 @@ import org.bukkit.event.player.PlayerBucketEmptyEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.util.StringUtil;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
 import java.util.*;
 
 public class KaGeneration extends JavaPlugin implements Listener {
@@ -53,8 +61,27 @@ public class KaGeneration extends JavaPlugin implements Listener {
         // 注册命令
         Objects.requireNonNull(this.getCommand("kageneration")).setExecutor(this);
         Objects.requireNonNull(this.getCommand("kg")).setExecutor(this);
-
+        // 注册命令补全器
+        Objects.requireNonNull(this.getCommand("kageneration")).setTabCompleter(this);
+        Objects.requireNonNull(this.getCommand("kg")).setTabCompleter(this);
         getLogger().info(ChatColor.GREEN + "空岛矿石生成插件已启用");
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) {
+        // 只处理 kageneration 和 kg 命令
+        if (!cmd.getName().equalsIgnoreCase("kageneration") &&
+                !cmd.getName().equalsIgnoreCase("kg")) {
+            return Collections.emptyList();
+        }
+
+        // 如果没有参数，返回所有可能的子命令
+        if (args.length == 1) {
+            return StringUtil.copyPartialMatches(args[0], Arrays.asList("reload", "info"), new ArrayList<>());
+        }
+
+        // 没有更多参数需要补全
+        return Collections.emptyList();
     }
 
     @Override
