@@ -18,3 +18,9 @@ permissions:
   kageneration.reload:
     description: 允许重载插件
     default: op
+  kageneration.level1:
+    description: 使用等级1矿石生成
+    default: false
+  kageneration.level2:
+    description: 使用等级2矿石生成
+    default: false
