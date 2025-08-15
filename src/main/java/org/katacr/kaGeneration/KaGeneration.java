@@ -75,12 +75,10 @@ public class KaGeneration extends JavaPlugin implements Listener {
         // 加载功能开关
         lavaBucketEnabled = config.getBoolean("Setting.get_lava_bucket", true);
         allowWaterInNether = config.getBoolean("Setting.allow_water_in_nether", true);
+        generateWaterFromIce = config.getBoolean("Setting.generate_water_from_ice", true);
 
         getLogger().info("黑曜石转换功能: " + (lavaBucketEnabled ? "启用" : "禁用"));
         getLogger().info("下界水桶功能: " + (allowWaterInNether ? "启用" : "禁用"));
-
-        // 加载冰块生成水源功能开关
-        generateWaterFromIce = config.getBoolean("Setting.generate_water_from_ice", true);
         getLogger().info("下界冰块生成水源功能: " + (generateWaterFromIce ? "启用" : "禁用"));
 
         // 加载生成组配置
@@ -334,14 +332,80 @@ public class KaGeneration extends JavaPlugin implements Listener {
 
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
-        // 只处理重载命令
+        // 处理重载命令
         if (args.length == 1 && args[0].equalsIgnoreCase("reload")) {
             // 重载配置
             reloadConfig(sender);
             return true;
         }
 
+        // 处理信息命令
+        if (args.length == 1 && args[0].equalsIgnoreCase("info")) {
+            // 显示配置信息
+            showConfigInfo(sender);
+            return true;
+        }
+
         return false;
+    }
+
+    // 显示配置信息
+    private void showConfigInfo(CommandSender sender) {
+        sender.sendMessage(ChatColor.GOLD + "==== KaGeneration 插件配置状态 ====");
+
+        // 显示世界白名单
+        if (enabledWorlds.isEmpty()) {
+            sender.sendMessage(ChatColor.YELLOW + "世界白名单: " + ChatColor.GREEN + "所有世界");
+        } else {
+            sender.sendMessage(ChatColor.YELLOW + "世界白名单: " + ChatColor.GREEN + String.join(", ", enabledWorlds));
+        }
+
+        // 显示功能状态
+        sender.sendMessage(ChatColor.YELLOW + "黑曜石转换功能: " +
+                (lavaBucketEnabled ? ChatColor.GREEN + "启用" : ChatColor.RED + "禁用"));
+
+        sender.sendMessage(ChatColor.YELLOW + "下界水桶功能: " +
+                (allowWaterInNether ? ChatColor.GREEN + "启用" : ChatColor.RED + "禁用"));
+
+        sender.sendMessage(ChatColor.YELLOW + "下界冰块生成水源功能: " +
+                (generateWaterFromIce ? ChatColor.GREEN + "启用" : ChatColor.RED + "禁用"));
+
+        // 获取当前权限组信息
+        String applicableGroup = "default";
+        String groupDisplay = "默认组";
+
+        if (sender instanceof Player player) {
+            applicableGroup = getApplicableGroup(player);
+            groupDisplay = "您的级别: " + ChatColor.GREEN + applicableGroup;
+        }
+
+        sender.sendMessage(ChatColor.YELLOW + groupDisplay);
+
+        // 显示当前权限组的矿石概率
+        Map<Material, Integer> oreChances = generationGroups.get(applicableGroup);
+        if (oreChances == null || oreChances.isEmpty()) {
+            sender.sendMessage(ChatColor.RED + "未找到该组的矿石配置");
+            return;
+        }
+
+        sender.sendMessage(ChatColor.GOLD + "==== 矿石生成概率 ====");
+
+        // 计算总概率
+        int totalChance = oreChances.values().stream().mapToInt(Integer::intValue).sum();
+
+        // 显示每种矿石的概率
+        for (Map.Entry<Material, Integer> entry : oreChances.entrySet()) {
+            Material material = entry.getKey();
+            int chance = entry.getValue();
+            double percentage = (double) chance / totalChance * 100;
+
+            sender.sendMessage(ChatColor.YELLOW + " - " +
+                    material.toString().toLowerCase() + ": " +
+                    ChatColor.GREEN + chance + "%" +
+                    ChatColor.GRAY + " (" + String.format("%.1f", percentage) + "%)");
+        }
+
+        sender.sendMessage(ChatColor.YELLOW + "总概率: " + ChatColor.GREEN + totalChance + "%");
     }
 
     private void reloadConfig(CommandSender sender) {
