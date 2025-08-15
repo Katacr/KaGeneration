@@ -13,7 +13,7 @@ World:
 Generation:
   # 默认组（没有权限时使用）
   default:
-    priority: 99  #优先级
+    priority: 0  #优先级
     iron_ore: 3
     coal_ore: 5
     stone: 92
