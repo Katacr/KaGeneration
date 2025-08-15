@@ -51,12 +51,16 @@ public class KaGeneration extends JavaPlugin implements Listener {
     private boolean lavaBucketEnabled = true;
     private boolean allowWaterInNether = true;
     private boolean generateWaterFromIce = true;
+    private String languageCode = "zh_CN"; // 默认语言
 
     @Override
     public void onEnable() {
         // 保存默认配置
         saveDefaultConfig();
         config = getConfig();
+
+        // 加载语言设置
+        loadLanguageSetting();
 
         // 加载语言文件
         loadLangFile();
@@ -82,17 +86,45 @@ public class KaGeneration extends JavaPlugin implements Listener {
         getLogger().info(getLang("logs.enable"));
     }
 
+    // 加载语言设置
+    private void loadLanguageSetting() {
+        languageCode = config.getString("Language", "zh_CN");
+        getLogger().info("已选择语言: " + languageCode);
+    }
+
     // 加载语言文件
     private void loadLangFile() {
-        File langFile = new File(getDataFolder(), "lang.yml");
-        if (!langFile.exists()) {
-            saveResource("lang.yml", false);
+        // 创建lang目录
+        File langDir = new File(getDataFolder(), "lang");
+        if (!langDir.exists()) {
+            langDir.mkdirs();
         }
 
+        // 构建语言文件路径
+        String langFileName = "lang_" + languageCode + ".yml";
+        File langFile = new File(langDir, langFileName);
+
+        // 如果语言文件不存在，尝试从JAR中复制
+        if (!langFile.exists()) {
+            // 尝试从JAR中复制默认语言文件
+            saveResource("lang/" + langFileName, false);
+
+            // 如果复制失败，使用默认语言文件
+            if (!langFile.exists()) {
+                getLogger().warning("找不到语言文件: " + langFileName + ", 使用默认语言文件");
+                langFile = new File(getDataFolder(), "lang/lang_zh_CN.yml");
+                if (!langFile.exists()) {
+                    saveResource("lang/lang_zh_CN.yml", false);
+                }
+            }
+        }
+
+        // 加载语言文件
         langConfig = YamlConfiguration.loadConfiguration(langFile);
+        getLogger().info("已加载语言文件: " + langFile.getName());
 
         // 加载默认语言文件（内置于JAR中）
-        InputStream defaultLangStream = getResource("lang.yml");
+        InputStream defaultLangStream = getResource("lang/lang_" + languageCode + ".yml");
         if (defaultLangStream != null) {
             YamlConfiguration defaultLangConfig = YamlConfiguration.loadConfiguration(
                     new InputStreamReader(defaultLangStream, StandardCharsets.UTF_8)
@@ -565,10 +597,7 @@ public class KaGeneration extends JavaPlugin implements Listener {
     }
 
     @Override
-    public boolean onCommand(@NotNull CommandSender sender,
-                             @NotNull Command cmd,
-                             @NotNull String label,
-                             @NotNull String[] args) {
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command cmd, @NotNull String label, @NotNull String[] args) {
         // 如果没有参数，显示帮助信息
         if (args.length == 0) {
             showHelp(sender);
@@ -617,27 +646,25 @@ public class KaGeneration extends JavaPlugin implements Listener {
         sender.sendMessage(getLang("commands.info.worlds", replacements));
 
         // 显示功能状态
-        replacements.put("status", lavaBucketEnabled ?
-                getLang("status.enabled") : getLang("status.disabled"));
+        replacements.put("status", lavaBucketEnabled ? getLang("status.enabled") : getLang("status.disabled"));
         sender.sendMessage(getLang("commands.info.lava_bucket", replacements));
 
-        replacements.put("status", allowWaterInNether ?
-                getLang("status.enabled") : getLang("status.disabled"));
+        replacements.put("status", allowWaterInNether ? getLang("status.enabled") : getLang("status.disabled"));
         sender.sendMessage(getLang("commands.info.water_in_nether", replacements));
 
-        replacements.put("status", generateWaterFromIce ?
-                getLang("status.enabled") : getLang("status.disabled"));
+        replacements.put("status", generateWaterFromIce ? getLang("status.enabled") : getLang("status.disabled"));
         sender.sendMessage(getLang("commands.info.ice_to_water", replacements));
 
         // 获取当前权限组信息
         String applicableGroup = "default";
-        String groupDisplay = "默认组";
+        String groupDisplay;
 
         if (sender instanceof Player player) {
             applicableGroup = getApplicableGroup(player);
             replacements.put("group", applicableGroup);
             groupDisplay = getLang("commands.info.player_group", replacements);
-
+        } else {
+            groupDisplay = getLang("commands.info.default_group");
         }
 
         sender.sendMessage(groupDisplay);
@@ -696,16 +723,13 @@ public class KaGeneration extends JavaPlugin implements Listener {
                     String.join(", ", enabledWorlds));
             sender.sendMessage(getLang("commands.info.worlds", replacements));
 
-            replacements.put("status", lavaBucketEnabled ?
-                    getLang("status.enabled") : getLang("status.disabled"));
+            replacements.put("status", lavaBucketEnabled ? getLang("status.enabled") : getLang("status.disabled"));
             sender.sendMessage(getLang("commands.info.lava_bucket", replacements));
 
-            replacements.put("status", allowWaterInNether ?
-                    getLang("status.enabled") : getLang("status.disabled"));
+            replacements.put("status", allowWaterInNether ? getLang("status.enabled") : getLang("status.disabled"));
             sender.sendMessage(getLang("commands.info.water_in_nether", replacements));
 
-            replacements.put("status", generateWaterFromIce ?
-                    getLang("status.enabled") : getLang("status.disabled"));
+            replacements.put("status", generateWaterFromIce ? getLang("status.enabled") : getLang("status.disabled"));
             sender.sendMessage(getLang("commands.info.ice_to_water", replacements));
         } catch (Exception e) {
             Map<String, String> replacements = new HashMap<>();

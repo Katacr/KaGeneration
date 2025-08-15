@@ -1,5 +1,7 @@
 # KaGeneration 矿石生成配置
 # 注意：每个组所有矿石的概率合计应为 100 ！
+Language: "en_US"
+
 Setting:
   get_lava_bucket: false  # 是否启用空桶右键黑曜石转换岩浆桶
   allow_water_in_nether: false  # 是否允许在下界放置水桶

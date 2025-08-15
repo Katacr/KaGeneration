@@ -67,4 +67,7 @@ processResources {
     filesMatching('plugin.yml') {
         expand props
     }
+    from('src/main/resources') {
+        include '**/*.yml'
+    }
 }

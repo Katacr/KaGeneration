@@ -1,0 +1,56 @@
+# KaGeneration 简体中文语言文件
+
+# 命令消息
+commands:
+  reload:
+    success: "&a配置已成功重载！"
+    no_permission: "&c你没有执行此命令的权限！"
+    failure: "&c重载失败: {error}"
+  info:
+    title: "&6==== KaGeneration 插件配置状态 ===="
+    worlds: "&e世界白名单: &f{worlds}"
+    lava_bucket: "&e黑曜石转换功能: {status}"
+    water_in_nether: "&e下界水桶功能: {status}"
+    ice_to_water: "&e下界冰块生成水源功能: {status}"
+    player_group: "&e您的级别: &f{group}"
+    all_worlds: "所有世界"
+    default_group: "默认组"
+    no_ore_config: "&c未找到该组的矿石配置"
+    ore_chances_title: "&6==== 矿石生成概率 ===="
+    ore_chance: "&e - {ore}: &f{chance}% &7({percentage}%)"
+    total_chance: "&e总概率: &f{total}%"
+  help:
+    title: "&6==== KaGeneration 插件帮助 ===="
+    reload: "&e/kg reload &f- 重载插件配置"
+    info: "&e/kg info &f- 显示当前配置状态"
+    help: "&e/kg help &f- 显示此帮助信息"
+    all_permissions: "&7您有权限使用所有命令"
+    limited_permissions: "&7您可以使用 info 和 help 命令"
+  unknown: "&c未知命令，输入 /kg help 查看帮助"
+
+# 功能消息
+features:
+  lava_bucket:
+    success: "&a已将黑曜石转换为岩浆桶！"
+    sound: "ITEM_BUCKET_FILL_LAVA"
+  water_in_nether:
+    success: "&a已在下界放置水！"
+    sound: "ITEM_BUCKET_EMPTY"
+  ice_to_water:
+    success: "&b冰块已融化为水源！"
+    sound: "BLOCK_GLASS_BREAK"
+
+# 日志消息
+logs:
+  enable: "&aKaGeneration插件已启用"
+  disable: "&c插件已禁用"
+  placeholder_hooked: "已挂钩到 PlaceholderAPI"
+  worlds:
+    all: "未配置世界白名单，将在所有世界生效"
+    specific: "已启用世界白名单: {worlds}"
+  config_reload_failed: "配置重载失败: {error}"
+
+# 状态文本
+status:
+  enabled: "&a启用"
+  disabled: "&c禁用"

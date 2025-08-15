@@ -1,0 +1,56 @@
+# KaGeneration English Language File
+
+# Command messages
+commands:
+  reload:
+    success: "&aConfiguration reloaded successfully!"
+    no_permission: "&cYou don't have permission to execute this command!"
+    failure: "&cReload failed: {error}"
+  info:
+    title: "&6==== KaGeneration Plugin Status ===="
+    worlds: "&eWorld Whitelist: &f{worlds}"
+    lava_bucket: "&eObsidian Conversion: {status}"
+    water_in_nether: "&eWater Bucket in Nether: {status}"
+    ice_to_water: "&eIce to Water in Nether: {status}"
+    player_group: "&eYour Level: &f{group}"
+    all_worlds: "All Worlds"
+    default_group: "Default Group"
+    no_ore_config: "&cNo ore configuration found for this group"
+    ore_chances_title: "&6==== Ore Generation Chances ===="
+    ore_chance: "&e - {ore}: &f{chance}% &7({percentage}%)"
+    total_chance: "&eTotal Chance: &f{total}%"
+  help:
+    title: "&6==== KaGeneration Plugin Help ===="
+    reload: "&e/kg reload &f- Reload plugin configuration"
+    info: "&e/kg info &f- Show current configuration status"
+    help: "&e/kg help &f- Show this help information"
+    all_permissions: "&7You have permission to use all commands"
+    limited_permissions: "&7You can use info and help commands"
+  unknown: "&cUnknown command, type /kg help for help"
+
+# Feature messages
+features:
+  lava_bucket:
+    success: "&aObsidian converted to lava bucket!"
+    sound: "ITEM_BUCKET_FILL_LAVA"
+  water_in_nether:
+    success: "&aWater placed in the Nether!"
+    sound: "ITEM_BUCKET_EMPTY"
+  ice_to_water:
+    success: "&bIce melted into water source!"
+    sound: "BLOCK_GLASS_BREAK"
+
+# Log messages
+logs:
+  enable: "&aKaGeneration plugin enabled"
+  disable: "&cPlugin disabled"
+  placeholder_hooked: "Hooked to PlaceholderAPI"
+  worlds:
+    all: "No world whitelist configured, will work in all worlds"
+    specific: "Enabled world whitelist: {worlds}"
+  config_reload_failed: "Configuration reload failed: {error}"
+
+# Status text
+status:
+  enabled: "&aEnabled"
+  disabled: "&cDisabled"
