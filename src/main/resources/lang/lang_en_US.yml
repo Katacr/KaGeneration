@@ -6,6 +6,7 @@ commands:
     success: "&aConfiguration reloaded successfully!"
     no_permission: "&cYou don't have permission to execute this command!"
     failure: "&cReload failed: {error}"
+    language_changed: "&aNow language: &f{language}"
   info:
     title: "&6==== KaGeneration Plugin Status ===="
     worlds: "&eWorld Whitelist: &f{worlds}"

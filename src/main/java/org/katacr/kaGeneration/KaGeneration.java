@@ -706,13 +706,26 @@ public class KaGeneration extends JavaPlugin implements Listener {
         }
 
         try {
-            // 重新加载配置
+            // 重新加载主配置
             reloadConfig();
             config = getConfig();
-            loadConfigSettings();
 
-            // 重新加载语言文件
-            loadLangFile();
+            // 保存当前语言设置
+            String previousLanguage = languageCode;
+
+            // 加载新的语言设置
+            loadLanguageSetting();
+
+            // 检查语言是否变更
+            if (!previousLanguage.equals(languageCode)) {
+                // 重新加载语言文件
+                loadLangFile();
+                sender.sendMessage(getLang("commands.reload.language_changed",
+                        Collections.singletonMap("language", languageCode)));
+            }
+
+            // 加载其他配置设置
+            loadConfigSettings();
 
             sender.sendMessage(getLang("commands.reload.success"));
 
@@ -723,13 +736,16 @@ public class KaGeneration extends JavaPlugin implements Listener {
                     String.join(", ", enabledWorlds));
             sender.sendMessage(getLang("commands.info.worlds", replacements));
 
-            replacements.put("status", lavaBucketEnabled ? getLang("status.enabled") : getLang("status.disabled"));
+            replacements.put("status", lavaBucketEnabled ?
+                    getLang("status.enabled") : getLang("status.disabled"));
             sender.sendMessage(getLang("commands.info.lava_bucket", replacements));
 
-            replacements.put("status", allowWaterInNether ? getLang("status.enabled") : getLang("status.disabled"));
+            replacements.put("status", allowWaterInNether ?
+                    getLang("status.enabled") : getLang("status.disabled"));
             sender.sendMessage(getLang("commands.info.water_in_nether", replacements));
 
-            replacements.put("status", generateWaterFromIce ? getLang("status.enabled") : getLang("status.disabled"));
+            replacements.put("status", generateWaterFromIce ?
+                    getLang("status.enabled") : getLang("status.disabled"));
             sender.sendMessage(getLang("commands.info.ice_to_water", replacements));
         } catch (Exception e) {
             Map<String, String> replacements = new HashMap<>();

@@ -16,7 +16,6 @@ repositories {
         name = "placeholderapi" // PlaceholderAPI 仓库
         url = 'https://repo.extendedclip.com/releases/'
     }
-
     maven {
         name = "spigotmc-repo"
         url = "https://hub.spigotmc.org/nexus/content/repositories/snapshots/"
@@ -35,9 +34,7 @@ dependencies {
 
 tasks {
     runServer {
-        // Configure the Minecraft version for our task.
-        // This is the only required configuration besides applying the plugin.
-        // Your plugin's jar (or shadowJar if present) will be used automatically.
+        // 配置 Minecraft 版本
         minecraftVersion("1.18")
     }
 }
@@ -61,13 +58,40 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 processResources {
+    // 修复重复文件问题
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+
+    // 处理变量替换
     def props = [version: version]
     inputs.properties props
     filteringCharset 'UTF-8'
+
+    // 只处理 plugin.yml 文件
     filesMatching('plugin.yml') {
         expand props
     }
-    from('src/main/resources') {
+
+    // 处理所有 YAML 文件
+    filesMatching('**/*.yml') {
+        expand props
+    }
+
+    // 从资源目录复制文件
+    from(sourceSets.main.resources.srcDirs) {
         include '**/*.yml'
+        include '**/*.yaml'
     }
 }
+
+// 添加构建任务
+task buildPlugin(type: Jar) {
+    from sourceSets.main.output
+    archiveFileName = "KaGeneration-${version}.jar"
+    destinationDirectory = file("$buildDir/libs")
+}
+
+// 确保构建任务依赖于类文件
+buildPlugin.dependsOn classes
+
+// 添加构建任务到构建流程
+build.dependsOn buildPlugin

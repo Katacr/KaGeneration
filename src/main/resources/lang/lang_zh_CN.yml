@@ -6,6 +6,7 @@ commands:
     success: "&a配置已成功重载！"
     no_permission: "&c你没有执行此命令的权限！"
     failure: "&c重载失败: {error}"
+    language_changed: "&a语言已变更为: &f{language}"
   info:
     title: "&6==== KaGeneration 插件配置状态 ===="
     worlds: "&e世界白名单: &f{worlds}"
