@@ -13,7 +13,7 @@ World:
 Generation:
   # 默认组（没有权限时使用）
   default:
-    priority: 0  #优先级
+    priority: 99  #优先级
     iron_ore: 3
     coal_ore: 5
     stone: 92
@@ -34,4 +34,12 @@ Generation:
     coal_ore: 15
     stone: 60
 
-  # 等级可无限添加，但优先级不允许相同，当拥有多个级别权限时，优先级最高的生效。
+  # 等级3 - 需要权限 kageneration.level3
+  level3:
+    priority: 3
+    diamond_ore: 15
+    iron_ore: 20
+    coal_ore: 20
+    stone: 45
+
+  # 等级理论可无限添加，但优先级不允许相同，当拥有多个级别权限时，优先级最高的生效。

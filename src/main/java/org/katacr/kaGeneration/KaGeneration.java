@@ -8,6 +8,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -23,16 +24,25 @@ import org.bukkit.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.File;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.logging.Level;
 
 public class KaGeneration extends JavaPlugin implements Listener {
 
     private FileConfiguration config;
+    private FileConfiguration langConfig;
     private final Map<String, Map<Material, Integer>> generationGroups = new HashMap<>();
     private final Map<String, Integer> groupPriorities = new HashMap<>();
 
     // 支持替换的方块类型
-    private final List<Material> SUPPORTED_BLOCKS = Arrays.asList(Material.STONE, Material.COBBLESTONE);
+    private final List<Material> SUPPORTED_BLOCKS = Arrays.asList(
+            Material.STONE,
+            Material.COBBLESTONE
+    );
 
     // 世界白名单
     private List<String> enabledWorlds = new ArrayList<>();
@@ -48,6 +58,9 @@ public class KaGeneration extends JavaPlugin implements Listener {
         saveDefaultConfig();
         config = getConfig();
 
+        // 加载语言文件
+        loadLangFile();
+
         // 加载配置
         loadConfigSettings();
 
@@ -57,18 +70,58 @@ public class KaGeneration extends JavaPlugin implements Listener {
         // 注册命令
         Objects.requireNonNull(this.getCommand("kageneration")).setExecutor(this);
         Objects.requireNonNull(this.getCommand("kg")).setExecutor(this);
-
         // 注册命令补全器
         Objects.requireNonNull(this.getCommand("kageneration")).setTabCompleter(this);
         Objects.requireNonNull(this.getCommand("kg")).setTabCompleter(this);
-
         // 注册 PlaceholderAPI 扩展
         if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
             new KagenerationPlaceholder(this).register();
-            getLogger().info("已挂钩到 PlaceholderAPI");
+            getLogger().info(getLang("logs.placeholder_hooked"));
         }
 
-        getLogger().info(ChatColor.GREEN + "空岛刷矿插件已启用");
+        getLogger().info(getLang("logs.enable"));
+    }
+
+    // 加载语言文件
+    private void loadLangFile() {
+        File langFile = new File(getDataFolder(), "lang.yml");
+        if (!langFile.exists()) {
+            saveResource("lang.yml", false);
+        }
+
+        langConfig = YamlConfiguration.loadConfiguration(langFile);
+
+        // 加载默认语言文件（内置于JAR中）
+        InputStream defaultLangStream = getResource("lang.yml");
+        if (defaultLangStream != null) {
+            YamlConfiguration defaultLangConfig = YamlConfiguration.loadConfiguration(
+                    new InputStreamReader(defaultLangStream, StandardCharsets.UTF_8)
+            );
+            langConfig.setDefaults(defaultLangConfig);
+        }
+    }
+
+    // 获取语言字符串
+    private String getLang(String path) {
+        return getLang(path, new HashMap<>());
+    }
+
+    // 获取语言字符串（带变量替换）
+    private String getLang(String path, Map<String, String> replacements) {
+        // 安全检查：确保 langConfig 不为 null
+        if (langConfig == null) {
+            return ChatColor.translateAlternateColorCodes('&', "&c语言文件未加载: " + path);
+        }
+
+        String message = langConfig.getString(path, path);
+
+        // 替换变量
+        for (Map.Entry<String, String> entry : replacements.entrySet()) {
+            message = message.replace("{" + entry.getKey() + "}", entry.getValue());
+        }
+
+        // 转换颜色代码
+        return ChatColor.translateAlternateColorCodes('&', message);
     }
 
     public String getPlayerGroup(Player player) {
@@ -135,43 +188,88 @@ public class KaGeneration extends JavaPlugin implements Listener {
                 case "reload" -> {
                     return Collections.emptyList(); // reload 没有二级参数
                 }
+
+
                 // info 命令的二级补全
                 case "info" -> {
                     return Collections.emptyList(); // info 没有二级参数
                 }
+
+
                 // help 命令的二级补全
                 case "help" -> {
                     return Collections.emptyList(); // help 没有二级参数
                 }
             }
-
         }
-
         // 没有更多参数需要补全
         return Collections.emptyList();
     }
 
+
+    // 获取语言字符串列表
+    private List<String> getLangList(String path) {
+        return getLangList(path, new HashMap<>());
+    }
+
+    // 获取语言字符串列表（带变量替换）
+    private List<String> getLangList(String path, Map<String, String> replacements) {
+        // 安全检查：确保 langConfig 不为 null
+        if (langConfig == null) {
+            return Collections.singletonList(ChatColor.translateAlternateColorCodes('&', "&c语言文件未加载: " + path));
+        }
+
+        List<String> messages = langConfig.getStringList(path);
+        List<String> formatted = new ArrayList<>();
+
+        for (String message : messages) {
+            // 替换变量
+            for (Map.Entry<String, String> entry : replacements.entrySet()) {
+                message = message.replace("{" + entry.getKey() + "}", entry.getValue());
+            }
+
+            // 转换颜色代码
+            formatted.add(ChatColor.translateAlternateColorCodes('&', message));
+        }
+
+        return formatted;
+    }
+
     @Override
     public void onDisable() {
-        getLogger().info(ChatColor.RED + "插件已禁用");
+        // 安全检查：确保 langConfig 不为 null
+        if (langConfig != null) {
+            getLogger().info(getLang("logs.disable"));
+        } else {
+            getLogger().info("KaGeneration插件已禁用");
+        }
     }
 
     // 显示帮助信息
     private void showHelp(CommandSender sender) {
-        sender.sendMessage(ChatColor.GOLD + "==== KaGeneration 插件帮助 ====");
-        sender.sendMessage(ChatColor.YELLOW + "/kg reload" + ChatColor.WHITE + " - 重载插件配置");
-        sender.sendMessage(ChatColor.YELLOW + "/kg info" + ChatColor.WHITE + " - 显示当前配置状态");
-        sender.sendMessage(ChatColor.YELLOW + "/kg help" + ChatColor.WHITE + " - 显示此帮助信息");
+        sender.sendMessage(getLang("commands.help.title"));
+        sender.sendMessage(getLang("commands.help.reload"));
+        sender.sendMessage(getLang("commands.help.info"));
+        sender.sendMessage(getLang("commands.help.help"));
+
+        // 添加权限说明
+        if (sender.hasPermission("kageneration.reload")) {
+            sender.sendMessage(getLang("commands.help.all_permissions"));
+        } else {
+            sender.sendMessage(getLang("commands.help.limited_permissions"));
+        }
     }
 
     // 加载所有配置设置
     private void loadConfigSettings() {
-        // 修复：加载世界白名单
+        // 加载世界白名单
         enabledWorlds = config.getStringList("World");
         if (enabledWorlds.isEmpty()) {
-            getLogger().info("未配置世界白名单，将在所有世界生效");
+            getLogger().info(getLang("logs.worlds.all"));
         } else {
-            getLogger().info("已启用世界白名单: " + String.join(", ", enabledWorlds));
+            Map<String, String> replacements = new HashMap<>();
+            replacements.put("worlds", String.join(", ", enabledWorlds));
+            getLogger().info(getLang("logs.worlds.specific", replacements));
         }
 
         // 加载功能开关
@@ -189,11 +287,17 @@ public class KaGeneration extends JavaPlugin implements Listener {
         groupPriorities.clear();
 
         ConfigurationSection generationSection = config.getConfigurationSection("Generation");
-        if (generationSection == null) return;
+        if (generationSection == null) {
+            getLogger().warning("未找到 Generation 配置部分");
+            return;
+        }
 
         for (String groupName : generationSection.getKeys(false)) {
             ConfigurationSection groupSection = generationSection.getConfigurationSection(groupName);
-            if (groupSection == null) continue;
+            if (groupSection == null) {
+                getLogger().warning("组 " + groupName + " 的配置无效");
+                continue;
+            }
 
             // 获取优先级
             int priority = groupSection.getInt("priority", 0);
@@ -208,10 +312,13 @@ public class KaGeneration extends JavaPlugin implements Listener {
                 if (material != null) {
                     int chance = groupSection.getInt(oreName, 0);
                     oreChances.put(material, chance);
+                } else {
+                    getLogger().warning("无效的矿石类型: " + oreName);
                 }
             }
 
             generationGroups.put(groupName, oreChances);
+            getLogger().info("加载权限组: " + groupName + " (优先级: " + priority + ")");
         }
     }
 
@@ -305,8 +412,16 @@ public class KaGeneration extends JavaPlugin implements Listener {
         }
 
         // 播放音效
-        player.playSound(player.getLocation(), Sound.ITEM_BUCKET_FILL_LAVA, 1.0f, 1.0f);
+        String soundName = getLang("features.lava_bucket.sound");
+        try {
+            Sound sound = Sound.valueOf(soundName);
+            player.playSound(player.getLocation(), sound, 1.0f, 1.0f);
+        } catch (IllegalArgumentException e) {
+            getLogger().warning("无效的音效名称: " + soundName);
+        }
 
+        // 发送提示消息
+        player.sendMessage(getLang("features.lava_bucket.success"));
     }
 
     // 允许在下界放置水桶
@@ -340,7 +455,13 @@ public class KaGeneration extends JavaPlugin implements Listener {
         targetBlock.setType(Material.WATER);
 
         // 播放放置水的声音
-        player.playSound(targetBlock.getLocation(), Sound.ITEM_BUCKET_EMPTY, 1.0f, 1.0f);
+        String soundName = getLang("features.water_in_nether.sound");
+        try {
+            Sound sound = Sound.valueOf(soundName);
+            player.playSound(targetBlock.getLocation(), sound, 1.0f, 1.0f);
+        } catch (IllegalArgumentException e) {
+            getLogger().warning("无效的音效名称: " + soundName);
+        }
 
         // 更新玩家物品（水桶变空桶）
         if (event.getItemStack() != null && event.getItemStack().getAmount() > 1) {
@@ -350,6 +471,8 @@ public class KaGeneration extends JavaPlugin implements Listener {
             player.getInventory().setItemInMainHand(new ItemStack(Material.BUCKET));
         }
 
+        // 发送提示消息
+        player.sendMessage(getLang("features.water_in_nether.success"));
     }
 
     // 添加冰块破坏事件处理
@@ -373,7 +496,8 @@ public class KaGeneration extends JavaPlugin implements Listener {
 
         // 检查玩家是否有精准采集
         Player player = event.getPlayer();
-        if (player.getGameMode() != GameMode.CREATIVE && player.getInventory().getItemInMainHand().getEnchantments().containsKey(Enchantment.SILK_TOUCH)) {
+        if (player.getGameMode() != GameMode.CREATIVE &&
+                player.getInventory().getItemInMainHand().getEnchantments().containsKey(Enchantment.SILK_TOUCH)) {
             // 有精准采集时不生成水源
             return;
         }
@@ -385,8 +509,16 @@ public class KaGeneration extends JavaPlugin implements Listener {
         block.setType(Material.WATER);
 
         // 播放冰块破碎音效
-        player.playSound(block.getLocation(), Sound.BLOCK_GLASS_BREAK, 1.0f, 1.0f);
+        String soundName = getLang("features.ice_to_water.sound");
+        try {
+            Sound sound = Sound.valueOf(soundName);
+            player.playSound(block.getLocation(), sound, 1.0f, 1.0f);
+        } catch (IllegalArgumentException e) {
+            getLogger().warning("无效的音效名称: " + soundName);
+        }
 
+        // 发送提示消息
+        player.sendMessage(getLang("features.ice_to_water.success"));
     }
 
     // 查找最近的玩家（无范围限制）
@@ -416,12 +548,14 @@ public class KaGeneration extends JavaPlugin implements Listener {
         String highestPriorityGroup = "default";
         int highestPriority = -1;
 
+        // 遍历所有配置的权限组
         for (Map.Entry<String, Integer> entry : groupPriorities.entrySet()) {
             String groupName = entry.getKey();
             int priority = entry.getValue();
 
             // 检查玩家是否有该组权限
-            if (player.hasPermission("kageneration." + groupName) && priority > highestPriority) {
+            String permissionNode = "kageneration." + groupName;
+            if (player.hasPermission(permissionNode) && priority > highestPriority) {
                 highestPriority = priority;
                 highestPriorityGroup = groupName;
             }
@@ -463,30 +597,37 @@ public class KaGeneration extends JavaPlugin implements Listener {
         }
 
         // 未知命令
-        sender.sendMessage(ChatColor.RED + "未知命令，输入 /kg help 查看帮助");
+        sender.sendMessage(getLang("commands.unknown"));
         return false;
     }
 
     // 显示配置信息
     private void showConfigInfo(CommandSender sender) {
-        sender.sendMessage(ChatColor.GOLD + "==== KaGeneration 插件配置状态 ====");
+        sender.sendMessage(getLang("commands.info.title"));
+
+        // 准备变量替换
+        Map<String, String> replacements = new HashMap<>();
 
         // 显示世界白名单
         if (enabledWorlds.isEmpty()) {
-            sender.sendMessage(ChatColor.YELLOW + "世界白名单: " + ChatColor.GREEN + "所有世界");
+            replacements.put("worlds", getLang("commands.info.all_worlds"));
         } else {
-            sender.sendMessage(ChatColor.YELLOW + "世界白名单: " + ChatColor.GREEN + String.join(", ", enabledWorlds));
+            replacements.put("worlds", String.join(", ", enabledWorlds));
         }
+        sender.sendMessage(getLang("commands.info.worlds", replacements));
 
         // 显示功能状态
-        sender.sendMessage(ChatColor.YELLOW + "黑曜石转换功能: " +
-                (lavaBucketEnabled ? ChatColor.GREEN + "启用" : ChatColor.RED + "禁用"));
+        replacements.put("status", lavaBucketEnabled ?
+                getLang("status.enabled") : getLang("status.disabled"));
+        sender.sendMessage(getLang("commands.info.lava_bucket", replacements));
 
-        sender.sendMessage(ChatColor.YELLOW + "下界水桶功能: " +
-                (allowWaterInNether ? ChatColor.GREEN + "启用" : ChatColor.RED + "禁用"));
+        replacements.put("status", allowWaterInNether ?
+                getLang("status.enabled") : getLang("status.disabled"));
+        sender.sendMessage(getLang("commands.info.water_in_nether", replacements));
 
-        sender.sendMessage(ChatColor.YELLOW + "下界冰块生成水源功能: " +
-                (generateWaterFromIce ? ChatColor.GREEN + "启用" : ChatColor.RED + "禁用"));
+        replacements.put("status", generateWaterFromIce ?
+                getLang("status.enabled") : getLang("status.disabled"));
+        sender.sendMessage(getLang("commands.info.ice_to_water", replacements));
 
         // 获取当前权限组信息
         String applicableGroup = "default";
@@ -494,19 +635,21 @@ public class KaGeneration extends JavaPlugin implements Listener {
 
         if (sender instanceof Player player) {
             applicableGroup = getApplicableGroup(player);
-            groupDisplay = "您的级别: " + ChatColor.GREEN + applicableGroup;
+            replacements.put("group", applicableGroup);
+            groupDisplay = getLang("commands.info.player_group", replacements);
+
         }
 
-        sender.sendMessage(ChatColor.YELLOW + groupDisplay);
+        sender.sendMessage(groupDisplay);
 
         // 显示当前权限组的矿石概率
         Map<Material, Integer> oreChances = generationGroups.get(applicableGroup);
         if (oreChances == null || oreChances.isEmpty()) {
-            sender.sendMessage(ChatColor.RED + "未找到该组的矿石配置");
+            sender.sendMessage(getLang("commands.info.no_ore_config"));
             return;
         }
 
-        sender.sendMessage(ChatColor.GOLD + "==== 矿石生成概率 ====");
+        sender.sendMessage(getLang("commands.info.ore_chances_title"));
 
         // 计算总概率
         int totalChance = oreChances.values().stream().mapToInt(Integer::intValue).sum();
@@ -517,19 +660,21 @@ public class KaGeneration extends JavaPlugin implements Listener {
             int chance = entry.getValue();
             double percentage = (double) chance / totalChance * 100;
 
-            sender.sendMessage(ChatColor.YELLOW + " - " +
-                    material.toString().toLowerCase() + ": " +
-                    ChatColor.GREEN + chance + "%" +
-                    ChatColor.GRAY + " (" + String.format("%.1f", percentage) + "%)");
+            replacements.put("ore", material.toString().toLowerCase());
+            replacements.put("chance", String.valueOf(chance));
+            replacements.put("percentage", String.format("%.1f", percentage));
+
+            sender.sendMessage(getLang("commands.info.ore_chance", replacements));
         }
 
-        sender.sendMessage(ChatColor.YELLOW + "总概率: " + ChatColor.GREEN + totalChance + "%");
+        replacements.put("total", String.valueOf(totalChance));
+        sender.sendMessage(getLang("commands.info.total_chance", replacements));
     }
 
     private void reloadConfig(CommandSender sender) {
         // 检查权限
         if (!sender.hasPermission("kageneration.reload")) {
-            sender.sendMessage(ChatColor.RED + "你没有执行此命令的权限！");
+            sender.sendMessage(getLang("commands.reload.no_permission"));
             return;
         }
 
@@ -539,14 +684,35 @@ public class KaGeneration extends JavaPlugin implements Listener {
             config = getConfig();
             loadConfigSettings();
 
-            sender.sendMessage(ChatColor.GREEN + "配置已成功重载！");
-            sender.sendMessage(ChatColor.YELLOW + "已启用世界: " + (enabledWorlds.isEmpty() ? "所有世界" : String.join(", ", enabledWorlds)));
-            sender.sendMessage(ChatColor.YELLOW + "黑曜石转换功能: " + (lavaBucketEnabled ? "启用" : "禁用"));
-            sender.sendMessage(ChatColor.YELLOW + "下界水桶功能: " + (allowWaterInNether ? "启用" : "禁用"));
-            sender.sendMessage(ChatColor.YELLOW + "下界冰块生成水源功能: " + (generateWaterFromIce ? "启用" : "禁用"));
+            // 重新加载语言文件
+            loadLangFile();
+
+            sender.sendMessage(getLang("commands.reload.success"));
+
+            // 准备变量替换
+            Map<String, String> replacements = new HashMap<>();
+            replacements.put("worlds", enabledWorlds.isEmpty() ?
+                    getLang("commands.info.all_worlds") :
+                    String.join(", ", enabledWorlds));
+            sender.sendMessage(getLang("commands.info.worlds", replacements));
+
+            replacements.put("status", lavaBucketEnabled ?
+                    getLang("status.enabled") : getLang("status.disabled"));
+            sender.sendMessage(getLang("commands.info.lava_bucket", replacements));
+
+            replacements.put("status", allowWaterInNether ?
+                    getLang("status.enabled") : getLang("status.disabled"));
+            sender.sendMessage(getLang("commands.info.water_in_nether", replacements));
+
+            replacements.put("status", generateWaterFromIce ?
+                    getLang("status.enabled") : getLang("status.disabled"));
+            sender.sendMessage(getLang("commands.info.ice_to_water", replacements));
         } catch (Exception e) {
-            sender.sendMessage(ChatColor.RED + "重载失败: " + e.getMessage());
-            getLogger().severe("配置重载失败: " + e.getMessage());
+            Map<String, String> replacements = new HashMap<>();
+            replacements.put("error", e.getMessage());
+            sender.sendMessage(getLang("commands.reload.failure", replacements));
+
+            getLogger().log(Level.SEVERE, getLang("logs.config_reload_failed", replacements));
         }
     }
 }
