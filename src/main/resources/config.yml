@@ -7,8 +7,8 @@ Setting:
 
 # 世界白名单（仅在这些世界生效）
 World:
-  - world
-  - world_nether
+  - skyblock
+  - skyblock_world
 
 Generation:
   # 默认组（没有权限时使用）
@@ -33,3 +33,5 @@ Generation:
     iron_ore: 15
     coal_ore: 15
     stone: 60
+
+  # 等级可无限添加，但优先级不允许相同，当拥有多个级别权限时，优先级最高的生效。

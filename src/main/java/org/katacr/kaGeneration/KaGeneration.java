@@ -1,5 +1,6 @@
 package org.katacr.kaGeneration;
 
+import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
@@ -19,14 +20,9 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.StringUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
 import java.util.*;
 
 public class KaGeneration extends JavaPlugin implements Listener {
@@ -61,23 +57,94 @@ public class KaGeneration extends JavaPlugin implements Listener {
         // 注册命令
         Objects.requireNonNull(this.getCommand("kageneration")).setExecutor(this);
         Objects.requireNonNull(this.getCommand("kg")).setExecutor(this);
+
         // 注册命令补全器
         Objects.requireNonNull(this.getCommand("kageneration")).setTabCompleter(this);
         Objects.requireNonNull(this.getCommand("kg")).setTabCompleter(this);
-        getLogger().info(ChatColor.GREEN + "空岛矿石生成插件已启用");
+
+        // 注册 PlaceholderAPI 扩展
+        if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
+            new KagenerationPlaceholder(this).register();
+            getLogger().info("已挂钩到 PlaceholderAPI");
+        }
+
+        getLogger().info(ChatColor.GREEN + "空岛刷矿插件已启用");
+    }
+
+    public String getPlayerGroup(Player player) {
+        return getApplicableGroup(player);
+    }
+
+    // PlaceholderAPI 扩展类
+    private static class KagenerationPlaceholder extends PlaceholderExpansion {
+        private final KaGeneration plugin;
+
+        public KagenerationPlaceholder(KaGeneration plugin) {
+            this.plugin = plugin;
+        }
+
+        @Override
+        public @NotNull String getIdentifier() {
+            return "kageneration";
+        }
+
+        @Override
+        public @NotNull String getAuthor() {
+            return plugin.getDescription().getAuthors().toString();
+        }
+
+        @Override
+        public @NotNull String getVersion() {
+            return plugin.getDescription().getVersion();
+        }
+
+        @Override
+        public @Nullable String onPlaceholderRequest(Player player, @NotNull String identifier) {
+            if (player == null) return "";
+
+            // 处理 %kageneration_level% 变量
+            if ("level".equalsIgnoreCase(identifier)) {
+                return plugin.getPlayerGroup(player);
+            }
+
+            return null;
+        }
     }
 
     @Override
-    public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) {
+    public List<String> onTabComplete(@NotNull CommandSender sender, Command cmd, @NotNull String alias, String[] args) {
         // 只处理 kageneration 和 kg 命令
         if (!cmd.getName().equalsIgnoreCase("kageneration") &&
                 !cmd.getName().equalsIgnoreCase("kg")) {
             return Collections.emptyList();
         }
 
-        // 如果没有参数，返回所有可能的子命令
+        // 一级命令补全
         if (args.length == 1) {
-            return StringUtil.copyPartialMatches(args[0], Arrays.asList("reload", "info"), new ArrayList<>());
+            return StringUtil.copyPartialMatches(args[0],
+                    Arrays.asList("reload", "info", "help"),
+                    new ArrayList<>());
+        }
+
+        // 二级命令补全（根据一级命令）
+        if (args.length == 2) {
+            String firstArg = args[0].toLowerCase();
+
+            // reload 命令的二级补全
+            switch (firstArg) {
+                case "reload" -> {
+                    return Collections.emptyList(); // reload 没有二级参数
+                }
+                // info 命令的二级补全
+                case "info" -> {
+                    return Collections.emptyList(); // info 没有二级参数
+                }
+                // help 命令的二级补全
+                case "help" -> {
+                    return Collections.emptyList(); // help 没有二级参数
+                }
+            }
+
         }
 
         // 没有更多参数需要补全
@@ -89,9 +156,17 @@ public class KaGeneration extends JavaPlugin implements Listener {
         getLogger().info(ChatColor.RED + "插件已禁用");
     }
 
+    // 显示帮助信息
+    private void showHelp(CommandSender sender) {
+        sender.sendMessage(ChatColor.GOLD + "==== KaGeneration 插件帮助 ====");
+        sender.sendMessage(ChatColor.YELLOW + "/kg reload" + ChatColor.WHITE + " - 重载插件配置");
+        sender.sendMessage(ChatColor.YELLOW + "/kg info" + ChatColor.WHITE + " - 显示当前配置状态");
+        sender.sendMessage(ChatColor.YELLOW + "/kg help" + ChatColor.WHITE + " - 显示此帮助信息");
+    }
+
     // 加载所有配置设置
     private void loadConfigSettings() {
-        // 加载世界白名单
+        // 修复：加载世界白名单
         enabledWorlds = config.getStringList("World");
         if (enabledWorlds.isEmpty()) {
             getLogger().info("未配置世界白名单，将在所有世界生效");
@@ -103,10 +178,6 @@ public class KaGeneration extends JavaPlugin implements Listener {
         lavaBucketEnabled = config.getBoolean("Setting.get_lava_bucket", true);
         allowWaterInNether = config.getBoolean("Setting.allow_water_in_nether", true);
         generateWaterFromIce = config.getBoolean("Setting.generate_water_from_ice", true);
-
-        getLogger().info("黑曜石转换功能: " + (lavaBucketEnabled ? "启用" : "禁用"));
-        getLogger().info("下界水桶功能: " + (allowWaterInNether ? "启用" : "禁用"));
-        getLogger().info("下界冰块生成水源功能: " + (generateWaterFromIce ? "启用" : "禁用"));
 
         // 加载生成组配置
         loadGenerationGroups();
@@ -275,6 +346,8 @@ public class KaGeneration extends JavaPlugin implements Listener {
         if (event.getItemStack() != null && event.getItemStack().getAmount() > 1) {
             event.getItemStack().setAmount(event.getItemStack().getAmount() - 1);
             player.getInventory().addItem(new ItemStack(Material.BUCKET));
+        } else if (event.getItemStack() != null) {
+            player.getInventory().setItemInMainHand(new ItemStack(Material.BUCKET));
         }
 
     }
@@ -358,21 +431,39 @@ public class KaGeneration extends JavaPlugin implements Listener {
     }
 
     @Override
-    public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
+    public boolean onCommand(@NotNull CommandSender sender,
+                             @NotNull Command cmd,
+                             @NotNull String label,
+                             @NotNull String[] args) {
+        // 如果没有参数，显示帮助信息
+        if (args.length == 0) {
+            showHelp(sender);
+            return true;
+        }
+
         // 处理重载命令
-        if (args.length == 1 && args[0].equalsIgnoreCase("reload")) {
+        if (args[0].equalsIgnoreCase("reload")) {
             // 重载配置
             reloadConfig(sender);
             return true;
         }
 
         // 处理信息命令
-        if (args.length == 1 && args[0].equalsIgnoreCase("info")) {
+        if (args[0].equalsIgnoreCase("info")) {
             // 显示配置信息
             showConfigInfo(sender);
             return true;
         }
 
+        // 处理帮助命令
+        if (args[0].equalsIgnoreCase("help")) {
+            // 显示帮助信息
+            showHelp(sender);
+            return true;
+        }
+
+        // 未知命令
+        sender.sendMessage(ChatColor.RED + "未知命令，输入 /kg help 查看帮助");
         return false;
     }
 
@@ -452,6 +543,7 @@ public class KaGeneration extends JavaPlugin implements Listener {
             sender.sendMessage(ChatColor.YELLOW + "已启用世界: " + (enabledWorlds.isEmpty() ? "所有世界" : String.join(", ", enabledWorlds)));
             sender.sendMessage(ChatColor.YELLOW + "黑曜石转换功能: " + (lavaBucketEnabled ? "启用" : "禁用"));
             sender.sendMessage(ChatColor.YELLOW + "下界水桶功能: " + (allowWaterInNether ? "启用" : "禁用"));
+            sender.sendMessage(ChatColor.YELLOW + "下界冰块生成水源功能: " + (generateWaterFromIce ? "启用" : "禁用"));
         } catch (Exception e) {
             sender.sendMessage(ChatColor.RED + "重载失败: " + e.getMessage());
             getLogger().severe("配置重载失败: " + e.getMessage());
