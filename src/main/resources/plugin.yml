@@ -6,3 +6,15 @@ description: '空岛插件:水流与岩浆交汇生成矿石'
 author: ['Katacr', '小晓']
 qq: 614401508
 github: 'https://github.com/Katacr/KaGeneration'
+
+
+commands:
+  kageneration:
+    description: KaGeneration插件主命令
+    aliases: [kg]
+    usage: /kageneration reload
+
+permissions:
+  kageneration.reload:
+    description: 允许重载插件
+    default: op

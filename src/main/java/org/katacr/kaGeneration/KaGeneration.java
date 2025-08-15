@@ -38,9 +38,7 @@ public class KaGeneration extends JavaPlugin implements Listener {
 
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
-        // 只处理重载命令
         if (args.length == 1 && args[0].equalsIgnoreCase("reload")) {
-            // 重载插件
             reloadPlugin(sender);
             return true;
         }
