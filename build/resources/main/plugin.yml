@@ -1,0 +1,4 @@
+name: KaGeneration
+version: '1.0-SNAPSHOT'
+main: org.katacr.kaGeneration.KaGeneration
+api-version: '1.18'
