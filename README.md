@@ -1,40 +1,37 @@
-﻿# KaGeneration 插件文档
+﻿# KaGeneration Plugin Documentation
 
-## 概述
+## Overview
 
-KaGeneration 是一个专为 Minecraft 空岛生存服务器设计的 Bukkit 插件，它通过修改水和岩浆交汇时生成的方块，使石头和原石有概率被替换为矿石，从而保证生存玩法的进行。插件提供了丰富的配置选项和功能，让服务器管理员可以根据需求定制矿石生成机制。
+KaGeneration is a Bukkit plugin specifically designed for Minecraft skyblock survival servers. It modifies the blocks generated when water and lava meet, making it possible for stone and cobblestone to be replaced by ores with a certain probability, thus ensuring the smooth progress of survival gameplay. The plugin provides rich configuration options and features, allowing server administrators to customize the ore generation mechanism according to their needs.
 
-## 核心功能
+## Core Features
 
-### 1. 矿石生成系统
-- 当水和岩浆交汇生成石头或原石时，根据配置的概率替换为矿石
-- 支持多种矿石类型：钻石矿、铁矿、煤矿等
-- 多权限组系统，不同权限玩家享受不同矿石生成概率
-- 优先级系统，当玩家有多个权限时使用最高优先级组
+### 1. Ore Generation System
+- When water and lava meet to generate stone or cobblestone, they are replaced by ores according to the configured probability
+- Supports multiple ore types: diamond ore, iron ore, coal ore, etc.
+- Multi-permission group system, where players with different permissions enjoy different ore generation probabilities
+- Priority system: when a player has multiple permissions, the highest priority group is used
 
-### 2. 世界白名单
-- 只在配置的世界中生效
-- 支持任意数量的世界
-- 默认在所有世界生效（当白名单为空时）
-- 支持正则表达式判断
+### 2. World Whitelist
+- Only takes effect in configured worlds
+- Supports any number of worlds
+- By default, it takes effect in all worlds (when the whitelist is empty)
+- Supports regular expression judgment
 
-### 3. 功能开关
-- **黑曜石转换**：手持空桶右键黑曜石可获得岩浆桶
-- **下界水桶**：允许在下界放置水桶（突破原版限制）
-- **冰块融水**：在下界破坏冰块可生成水源
+### 3. Feature Switches
+- **Obsidian Conversion**: Right-clicking obsidian with an empty bucket in hand can obtain a lava bucket
+- **Nether Water Buckets**: Allows placing water buckets in the Nether (bypassing vanilla restrictions)
+- **Ice Block Melting**: Breaking ice blocks in the Nether can generate a water source
 
-### 4. 指令
-- `/kg reload` - 重载插件配置
-- `/kg info` - 显示当前配置状态
-- `/kg help` - 显示帮助信息
+### 4. Commands
+- `/kg reload` - Reload plugin configuration
+- `/kg info` - Display current configuration status
+- `/kg help` - Display help information
 
-### 5. PlaceholderAPI 
-- `%kageneration_level%` - 返回玩家当前的矿石组名称，如: level2
-- `%kageneration_priority%` - 返回玩家当前的优先级，如: 2
+### 5. PlaceholderAPI
+- `%kageneration_level%` - Returns the player's current ore group name, e.g.: level2
+- `%kageneration_priority%` - Returns the player's current priority, e.g.: 2
 
-## 配置文件
+## Configuration File
 
-配置文件位于 `plugins/KaGeneration/config.yml`
-
-
-
+The configuration file is located at `plugins/KaGeneration/config.yml`
