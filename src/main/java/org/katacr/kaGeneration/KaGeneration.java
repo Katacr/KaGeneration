@@ -24,11 +24,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.bukkit.entity.Player;
-import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 
-import java.awt.*;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
@@ -103,42 +100,56 @@ public class KaGeneration extends JavaPlugin implements Listener {
 
     // 加载语言文件
     private void loadLangFile() {
-        // 创建lang目录
-        File langDir = new File(getDataFolder(), "lang");
-        if (!langDir.exists()) {
-            langDir.mkdirs();
-        }
+        try {
+            File langDir = new File(getDataFolder(), "lang");
 
-        // 构建语言文件路径
-        String langFileName = "lang_" + languageCode + ".yml";
-        File langFile = new File(langDir, langFileName);
-
-        // 如果语言文件不存在，尝试从JAR中复制
-        if (!langFile.exists()) {
-            // 尝试从JAR中复制默认语言文件
-            saveResource("lang/" + langFileName, false);
-
-            // 如果复制失败，使用默认语言文件
-            if (!langFile.exists()) {
-                getLogger().warning("找不到语言文件: " + langFileName + ", 使用默认语言文件");
-                langFile = new File(getDataFolder(), "lang/lang_zh_CN.yml");
-                if (!langFile.exists()) {
-                    saveResource("lang/lang_zh_CN.yml", false);
+            // 确保语言目录存在
+            if (!langDir.exists()) {
+                // 处理 mkdirs() 的返回值
+                boolean dirsCreated = langDir.mkdirs();
+                if (dirsCreated) {
+                    getLogger().info("已创建语言目录: " + langDir.getAbsolutePath());
+                } else {
+                    getLogger().warning("无法创建语言目录: " + langDir.getAbsolutePath());
+                    // 尝试使用默认目录
+                    langDir = getDataFolder();
                 }
             }
-        }
 
-        // 加载语言文件
-        langConfig = YamlConfiguration.loadConfiguration(langFile);
-        getLogger().info("已加载语言文件: " + langFile.getName());
+            // 构建语言文件路径
+            String langFileName = "lang_" + languageCode + ".yml";
+            File langFile = new File(langDir, langFileName);
 
-        // 加载默认语言文件（内置于JAR中）
-        InputStream defaultLangStream = getResource("lang/lang_" + languageCode + ".yml");
-        if (defaultLangStream != null) {
-            YamlConfiguration defaultLangConfig = YamlConfiguration.loadConfiguration(
-                    new InputStreamReader(defaultLangStream, StandardCharsets.UTF_8)
-            );
-            langConfig.setDefaults(defaultLangConfig);
+            // 如果语言文件不存在，尝试从资源复制
+            if (!langFile.exists()) {
+                // 尝试从JAR中复制默认语言文件
+                saveResource("lang/" + langFileName, false);
+
+                // 如果复制失败，使用默认语言文件
+                if (!langFile.exists()) {
+                    getLogger().warning("找不到语言文件: " + langFileName + ", 使用默认语言文件");
+                    langFile = new File(langDir, "lang_zh_CN.yml");
+                    if (!langFile.exists()) {
+                        saveResource("lang/lang_zh_CN.yml", false);
+                    }
+                }
+            }
+
+            // 加载语言文件
+            langConfig = YamlConfiguration.loadConfiguration(langFile);
+            getLogger().info("已加载语言文件: " + langFile.getName());
+
+            // 加载默认语言文件（内置于JAR中）
+            InputStream defaultLangStream = getResource("lang/lang_" + languageCode + ".yml");
+            if (defaultLangStream != null) {
+                YamlConfiguration defaultLangConfig = YamlConfiguration.loadConfiguration(
+                        new InputStreamReader(defaultLangStream, StandardCharsets.UTF_8)
+                );
+                langConfig.setDefaults(defaultLangConfig);
+            }
+        } catch (Exception e) {
+            getLogger().log(Level.SEVERE, "加载语言文件失败", e);
+            langConfig = null;
         }
     }
 
