@@ -24,6 +24,8 @@ import org.bukkit.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -44,8 +46,9 @@ public class KaGeneration extends JavaPlugin implements Listener {
             Material.COBBLESTONE
     );
 
-    // 世界白名单
-    private List<String> enabledWorlds = new ArrayList<>();
+    // 修改世界白名单存储结构
+    private List<String> worldPatterns = new ArrayList<>();
+    private final List<Pattern> compiledPatterns = new ArrayList<>();
 
     // 功能开关
     private boolean lavaBucketEnabled = true;
@@ -239,34 +242,6 @@ public class KaGeneration extends JavaPlugin implements Listener {
     }
 
 
-    // 获取语言字符串列表
-    private List<String> getLangList(String path) {
-        return getLangList(path, new HashMap<>());
-    }
-
-    // 获取语言字符串列表（带变量替换）
-    private List<String> getLangList(String path, Map<String, String> replacements) {
-        // 安全检查：确保 langConfig 不为 null
-        if (langConfig == null) {
-            return Collections.singletonList(ChatColor.translateAlternateColorCodes('&', "&c语言文件未加载: " + path));
-        }
-
-        List<String> messages = langConfig.getStringList(path);
-        List<String> formatted = new ArrayList<>();
-
-        for (String message : messages) {
-            // 替换变量
-            for (Map.Entry<String, String> entry : replacements.entrySet()) {
-                message = message.replace("{" + entry.getKey() + "}", entry.getValue());
-            }
-
-            // 转换颜色代码
-            formatted.add(ChatColor.translateAlternateColorCodes('&', message));
-        }
-
-        return formatted;
-    }
-
     @Override
     public void onDisable() {
         // 安全检查：确保 langConfig 不为 null
@@ -295,12 +270,14 @@ public class KaGeneration extends JavaPlugin implements Listener {
     // 加载所有配置设置
     private void loadConfigSettings() {
         // 加载世界白名单
-        enabledWorlds = config.getStringList("World");
-        if (enabledWorlds.isEmpty()) {
+        worldPatterns = config.getStringList("World");
+        compileWorldPatterns();
+
+        if (worldPatterns.isEmpty()) {
             getLogger().info(getLang("logs.worlds.all"));
         } else {
             Map<String, String> replacements = new HashMap<>();
-            replacements.put("worlds", String.join(", ", enabledWorlds));
+            replacements.put("patterns", String.join(", ", worldPatterns));
             getLogger().info(getLang("logs.worlds.specific", replacements));
         }
 
@@ -311,6 +288,40 @@ public class KaGeneration extends JavaPlugin implements Listener {
 
         // 加载生成组配置
         loadGenerationGroups();
+    }
+
+    // 检查世界是否匹配
+    private boolean isWorldEnabled(String worldName) {
+        boolean included = false;
+        boolean excluded = false;
+
+        for (Pattern pattern : compiledPatterns) {
+            Matcher matcher = pattern.matcher(worldName);
+            if (matcher.matches()) {
+                // 检查是否为排除模式
+                String patternStr = pattern.pattern();
+                if (patternStr.startsWith("!")) {
+                    excluded = true;
+                } else {
+                    included = true;
+                }
+            }
+        }
+
+        return included && !excluded;
+    }
+
+    // 编译世界匹配模式
+    private void compileWorldPatterns() {
+        compiledPatterns.clear();
+        for (String patternStr : worldPatterns) {
+            try {
+                Pattern pattern = Pattern.compile(patternStr);
+                compiledPatterns.add(pattern);
+            } catch (Exception e) {
+                getLogger().warning("无效的正则表达式: " + patternStr + " - " + e.getMessage());
+            }
+        }
     }
 
     // 加载生成组配置
@@ -362,14 +373,11 @@ public class KaGeneration extends JavaPlugin implements Listener {
         // 只处理石头和原石生成
         if (!SUPPORTED_BLOCKS.contains(newType)) return;
 
-        // 检查世界白名单
         World world = event.getBlock().getWorld();
-        if (!enabledWorlds.isEmpty() && !enabledWorlds.contains(world.getName())) {
+        if (isWorldEnabled(world.getName())) {
             // 不在白名单中的世界，按原版处理
             return;
-        }
-
-        // 查找附近玩家
+        }        // 查找附近玩家
         Player nearestPlayer = findNearestPlayer(event.getBlock().getLocation());
 
         // 获取适用的生成组
@@ -408,19 +416,21 @@ public class KaGeneration extends JavaPlugin implements Listener {
         Player player = event.getPlayer();
         Block clickedBlock = event.getClickedBlock();
         ItemStack itemInHand = player.getInventory().getItemInMainHand();
-
+        // 检查世界白名单
+        World world = null;
+        if (clickedBlock != null) {
+            world = clickedBlock.getWorld();
+        }
+        if (world != null && isWorldEnabled(world.getName())) {
+            // 不在白名单中的世界，不执行转换
+            return;
+        }
         // 检查玩家是否手持空桶
         if (itemInHand.getType() != Material.BUCKET) return;
 
         // 检查点击的方块是否是黑曜石
         if (clickedBlock == null || clickedBlock.getType() != Material.OBSIDIAN) return;
 
-        // 检查世界白名单
-        World world = clickedBlock.getWorld();
-        if (!enabledWorlds.isEmpty() && !enabledWorlds.contains(world.getName())) {
-            // 不在白名单中的世界，不执行转换
-            return;
-        }
 
         // 取消事件（防止桶被使用）
         event.setCancelled(true);
@@ -472,11 +482,6 @@ public class KaGeneration extends JavaPlugin implements Listener {
         // 检查是否在下界
         if (player.getWorld().getEnvironment() != World.Environment.NETHER) return;
 
-        // 检查世界白名单
-        if (!enabledWorlds.isEmpty() && !enabledWorlds.contains(player.getWorld().getName())) {
-            return;
-        }
-
         // 取消原版事件（防止水被蒸发）
         event.setCancelled(true);
 
@@ -521,10 +526,6 @@ public class KaGeneration extends JavaPlugin implements Listener {
         // 检查是否在下界
         if (block.getWorld().getEnvironment() != World.Environment.NETHER) return;
 
-        // 检查世界白名单
-        if (!enabledWorlds.isEmpty() && !enabledWorlds.contains(block.getWorld().getName())) {
-            return;
-        }
 
         // 检查玩家是否有精准采集
         Player player = event.getPlayer();
@@ -637,13 +638,13 @@ public class KaGeneration extends JavaPlugin implements Listener {
         // 准备变量替换
         Map<String, String> replacements = new HashMap<>();
 
-        // 显示世界白名单
-        if (enabledWorlds.isEmpty()) {
-            replacements.put("worlds", getLang("commands.info.all_worlds"));
+        // 显示世界模式
+        if (worldPatterns.isEmpty()) {
+            replacements.put("patterns", getLang("commands.info.all_worlds"));
         } else {
-            replacements.put("worlds", String.join(", ", enabledWorlds));
+            replacements.put("patterns", String.join(", ", worldPatterns));
         }
-        sender.sendMessage(getLang("commands.info.worlds", replacements));
+        sender.sendMessage(getLang("commands.info.world_patterns", replacements));
 
         // 显示功能状态
         replacements.put("status", lavaBucketEnabled ? getLang("status.enabled") : getLang("status.disabled"));
@@ -731,10 +732,10 @@ public class KaGeneration extends JavaPlugin implements Listener {
 
             // 准备变量替换
             Map<String, String> replacements = new HashMap<>();
-            replacements.put("worlds", enabledWorlds.isEmpty() ?
+            replacements.put("patterns", worldPatterns.isEmpty() ?
                     getLang("commands.info.all_worlds") :
-                    String.join(", ", enabledWorlds));
-            sender.sendMessage(getLang("commands.info.worlds", replacements));
+                    String.join(", ", worldPatterns));
+            sender.sendMessage(getLang("commands.info.world_patterns", replacements));
 
             replacements.put("status", lavaBucketEnabled ?
                     getLang("status.enabled") : getLang("status.disabled"));

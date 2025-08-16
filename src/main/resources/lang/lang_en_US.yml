@@ -20,6 +20,7 @@ commands:
     ore_chances_title: "&6==== Ore Generation Chances ===="
     ore_chance: "&e - {ore}: &f{chance}% &7({percentage}%)"
     total_chance: "&eTotal Chance: &f{total}%"
+    world_patterns: "&eWorld Matching Patterns: &f{patterns}"
   help:
     title: "&6==== KaGeneration Plugin Help ===="
     reload: "&e/kg reload &f- Reload plugin configuration"
@@ -48,7 +49,7 @@ logs:
   placeholder_hooked: "Hooked to PlaceholderAPI"
   worlds:
     all: "No world whitelist configured, will work in all worlds"
-    specific: "Enabled world whitelist: {worlds}"
+    specific: "Enabled world matching patterns: {patterns}"
   config_reload_failed: "Configuration reload failed: {error}"
 
 # Status text
