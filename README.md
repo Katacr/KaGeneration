@@ -28,10 +28,13 @@ KaGeneration 是一个专为 Minecraft 空岛生存服务器设计的 Bukkit 插
 - `/kg info` - 显示当前配置状态
 - `/kg help` - 显示帮助信息
 
-### 5. PlaceholderAPI 支持
+### 5. PlaceholderAPI 
 - `%kageneration_level%` - 返回玩家当前的矿石组名称，如: level2
+- `%kageneration_priority%` - 返回玩家当前的优先级，如: 2
 
 ## 配置文件
 
 配置文件位于 `plugins/KaGeneration/config.yml`
+
+
 
