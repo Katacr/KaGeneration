@@ -338,7 +338,7 @@ public class KaGeneration extends JavaPlugin implements Listener {
         loadGenerationGroups();
     }
 
-    // 发送 ActionBar 消息的辅助方法
+    // 发送 ActionBar 消息
     private void sendActionBar(Player player, String message) {
         player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ChatColor.translateAlternateColorCodes('&', message)));
     }
@@ -601,7 +601,7 @@ public class KaGeneration extends JavaPlugin implements Listener {
         sendActionBar(player, getLang("features.ice_to_water.success"));
     }
 
-    // 查找最近的玩家（无范围限制）
+    // 查找最近的玩家
     private Player findNearestPlayer(org.bukkit.Location location) {
         Player nearest = null;
         double minDistance = Double.MAX_VALUE;
@@ -654,28 +654,25 @@ public class KaGeneration extends JavaPlugin implements Listener {
 
         // 处理重载命令
         if (args[0].equalsIgnoreCase("reload")) {
-            // 重载配置
             reloadConfig(sender);
             return true;
         }
 
         // 处理信息命令
         if (args[0].equalsIgnoreCase("info")) {
-            // 显示配置信息
             showConfigInfo(sender);
             return true;
         }
 
         // 处理帮助命令
         if (args[0].equalsIgnoreCase("help")) {
-            // 显示帮助信息
             showHelp(sender);
             return true;
         }
 
         // 未知命令
         sender.sendMessage(getLang("commands.unknown"));
-        return false;
+        return true;
     }
 
     // 显示配置信息
