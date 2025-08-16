@@ -1,6 +1,8 @@
 package org.katacr.kaGeneration;
 
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
+import net.md_5.bungee.api.ChatMessageType;
+import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
@@ -23,33 +25,27 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import net.md_5.bungee.api.chat.TextComponent;
-import net.md_5.bungee.api.ChatMessageType;
 
-import java.util.List;
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
 import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class KaGeneration extends JavaPlugin implements Listener {
 
-    private FileConfiguration config;
-    private FileConfiguration langConfig;
     private final Map<String, Map<Material, Integer>> generationGroups = new HashMap<>();
     private final Map<String, Integer> groupPriorities = new HashMap<>();
-
     // 支持替换的方块类型
     private final List<Material> SUPPORTED_BLOCKS = Arrays.asList(Material.STONE, Material.COBBLESTONE);
-
+    private final List<Pattern> compiledPatterns = new ArrayList<>();
+    private FileConfiguration config;
+    private FileConfiguration langConfig;
     // 修改世界白名单存储结构
     private List<String> worldPatterns = new ArrayList<>();
-    private final List<Pattern> compiledPatterns = new ArrayList<>();
-
     // 功能开关
     private boolean lavaBucketEnabled = true;
     private boolean allowWaterInNether = true;
@@ -209,47 +205,6 @@ public class KaGeneration extends JavaPlugin implements Listener {
         return highestPriority;
     }
 
-    // PlaceholderAPI 扩展类
-    private static class KagenerationPlaceholder extends PlaceholderExpansion {
-        private final KaGeneration plugin;
-
-        public KagenerationPlaceholder(KaGeneration plugin) {
-            this.plugin = plugin;
-        }
-
-        @Override
-        public @NotNull String getIdentifier() {
-            return "kageneration";
-        }
-
-        @Override
-        public @NotNull String getAuthor() {
-            return plugin.getDescription().getAuthors().toString();
-        }
-
-        @Override
-        public @NotNull String getVersion() {
-            return plugin.getDescription().getVersion();
-        }
-
-        @Override
-        public @Nullable String onPlaceholderRequest(Player player, @NotNull String identifier) {
-            if (player == null) return "";
-
-            // 处理 %kageneration_level% 变量
-            if ("level".equalsIgnoreCase(identifier)) {
-                return plugin.getPlayerGroup(player);
-            }
-
-            // 处理 %kageneration_priority% 变量
-            if ("priority".equalsIgnoreCase(identifier)) {
-                return String.valueOf(plugin.getPlayerPriority(player));
-            }
-
-            return null;
-        }
-    }
-
     @Override
     public List<String> onTabComplete(@NotNull CommandSender sender, Command cmd, @NotNull String alias, String[] args) {
         // 只处理 kageneration 和 kg 命令
@@ -288,7 +243,6 @@ public class KaGeneration extends JavaPlugin implements Listener {
         // 没有更多参数需要补全
         return Collections.emptyList();
     }
-
 
     @Override
     public void onDisable() {
@@ -792,6 +746,47 @@ public class KaGeneration extends JavaPlugin implements Listener {
             sender.sendMessage(getLang("commands.reload.failure", replacements));
 
             getLogger().log(Level.SEVERE, getLang("logs.config_reload_failed", replacements));
+        }
+    }
+
+    // PlaceholderAPI 扩展类
+    private static class KagenerationPlaceholder extends PlaceholderExpansion {
+        private final KaGeneration plugin;
+
+        public KagenerationPlaceholder(KaGeneration plugin) {
+            this.plugin = plugin;
+        }
+
+        @Override
+        public @NotNull String getIdentifier() {
+            return "kageneration";
+        }
+
+        @Override
+        public @NotNull String getAuthor() {
+            return plugin.getDescription().getAuthors().toString();
+        }
+
+        @Override
+        public @NotNull String getVersion() {
+            return plugin.getDescription().getVersion();
+        }
+
+        @Override
+        public @Nullable String onPlaceholderRequest(Player player, @NotNull String identifier) {
+            if (player == null) return "";
+
+            // 处理 %kageneration_level% 变量
+            if ("level".equalsIgnoreCase(identifier)) {
+                return plugin.getPlayerGroup(player);
+            }
+
+            // 处理 %kageneration_priority% 变量
+            if ("priority".equalsIgnoreCase(identifier)) {
+                return String.valueOf(plugin.getPlayerPriority(player));
+            }
+
+            return null;
         }
     }
 }
