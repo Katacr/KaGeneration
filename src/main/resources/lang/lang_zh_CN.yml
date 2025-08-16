@@ -44,8 +44,8 @@ features:
 
 # 日志消息
 logs:
-  enable: "&aKaGeneration插件已启用"
-  disable: "&c插件已禁用"
+  enable: "KaGeneration插件已启用"
+  disable: "插件已禁用"
   placeholder_hooked: "已挂钩到 PlaceholderAPI"
   worlds:
     all: "未配置世界匹配模式，将在所有世界生效"

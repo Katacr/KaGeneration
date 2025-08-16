@@ -1,7 +1,6 @@
 package org.katacr.kaGeneration;
 
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
-import net.md_5.bungee.api.ChatMessageType;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
@@ -25,6 +24,7 @@ import org.bukkit.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import net.md_5.bungee.api.chat.TextComponent;
+import net.md_5.bungee.api.ChatMessageType;
 
 import java.util.List;
 import java.util.regex.Pattern;
@@ -180,6 +180,40 @@ public class KaGeneration extends JavaPlugin implements Listener {
         return getApplicableGroup(player);
     }
 
+    // 添加获取玩家优先级的方法
+    public int getPlayerPriority(Player player) {
+        return getApplicablePriority(player);
+    }
+
+    // 获取适用的优先级
+    private int getApplicablePriority(Player player) {
+        // 如果没有找到玩家，使用默认组优先级
+        if (player == null) {
+            return groupPriorities.getOrDefault("default", 0);
+        }
+
+        int highestPriority = -1;
+
+        // 遍历所有配置的权限组
+        for (Map.Entry<String, Integer> entry : groupPriorities.entrySet()) {
+            String groupName = entry.getKey();
+            int priority = entry.getValue();
+
+            // 检查玩家是否有该组权限
+            String permissionNode = "kageneration." + groupName;
+            if (player.hasPermission(permissionNode) && priority > highestPriority) {
+                highestPriority = priority;
+            }
+        }
+
+        // 如果没有找到任何权限组，使用默认组优先级
+        if (highestPriority == -1) {
+            return groupPriorities.getOrDefault("default", 0);
+        }
+
+        return highestPriority;
+    }
+
     // PlaceholderAPI 扩展类
     private static class KagenerationPlaceholder extends PlaceholderExpansion {
         private final KaGeneration plugin;
@@ -210,6 +244,11 @@ public class KaGeneration extends JavaPlugin implements Listener {
             // 处理 %kageneration_level% 变量
             if ("level".equalsIgnoreCase(identifier)) {
                 return plugin.getPlayerGroup(player);
+            }
+
+            // 处理 %kageneration_priority% 变量
+            if ("priority".equalsIgnoreCase(identifier)) {
+                return String.valueOf(plugin.getPlayerPriority(player));
             }
 
             return null;

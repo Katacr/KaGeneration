@@ -44,8 +44,8 @@ features:
 
 # Log messages
 logs:
-  enable: "&aKaGeneration plugin enabled"
-  disable: "&cPlugin disabled"
+  enable: "KaGeneration plugin enabled"
+  disable: "Plugin disabled"
   placeholder_hooked: "Hooked to PlaceholderAPI"
   worlds:
     all: "No world whitelist configured, will work in all worlds"
