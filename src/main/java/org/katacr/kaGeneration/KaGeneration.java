@@ -44,10 +44,7 @@ public class KaGeneration extends JavaPlugin implements Listener {
     private final Map<String, Integer> groupPriorities = new HashMap<>();
 
     // 支持替换的方块类型
-    private final List<Material> SUPPORTED_BLOCKS = Arrays.asList(
-            Material.STONE,
-            Material.COBBLESTONE
-    );
+    private final List<Material> SUPPORTED_BLOCKS = Arrays.asList(Material.STONE, Material.COBBLESTONE);
 
     // 修改世界白名单存储结构
     private List<String> worldPatterns = new ArrayList<>();
@@ -142,9 +139,7 @@ public class KaGeneration extends JavaPlugin implements Listener {
             // 加载默认语言文件（内置于JAR中）
             InputStream defaultLangStream = getResource("lang/lang_" + languageCode + ".yml");
             if (defaultLangStream != null) {
-                YamlConfiguration defaultLangConfig = YamlConfiguration.loadConfiguration(
-                        new InputStreamReader(defaultLangStream, StandardCharsets.UTF_8)
-                );
+                YamlConfiguration defaultLangConfig = YamlConfiguration.loadConfiguration(new InputStreamReader(defaultLangStream, StandardCharsets.UTF_8));
                 langConfig.setDefaults(defaultLangConfig);
             }
         } catch (Exception e) {
@@ -258,16 +253,13 @@ public class KaGeneration extends JavaPlugin implements Listener {
     @Override
     public List<String> onTabComplete(@NotNull CommandSender sender, Command cmd, @NotNull String alias, String[] args) {
         // 只处理 kageneration 和 kg 命令
-        if (!cmd.getName().equalsIgnoreCase("kageneration") &&
-                !cmd.getName().equalsIgnoreCase("kg")) {
+        if (!cmd.getName().equalsIgnoreCase("kageneration") && !cmd.getName().equalsIgnoreCase("kg")) {
             return Collections.emptyList();
         }
 
         // 一级命令补全
         if (args.length == 1) {
-            return StringUtil.copyPartialMatches(args[0],
-                    Arrays.asList("reload", "info", "help"),
-                    new ArrayList<>());
+            return StringUtil.copyPartialMatches(args[0], Arrays.asList("reload", "info", "help"), new ArrayList<>());
         }
 
         // 二级命令补全（根据一级命令）
@@ -348,10 +340,7 @@ public class KaGeneration extends JavaPlugin implements Listener {
 
     // 发送 ActionBar 消息的辅助方法
     private void sendActionBar(Player player, String message) {
-        player.spigot().sendMessage(
-                ChatMessageType.ACTION_BAR,
-                new TextComponent(ChatColor.translateAlternateColorCodes('&', message))
-        );
+        player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ChatColor.translateAlternateColorCodes('&', message)));
     }
 
     // 检查世界是否匹配
@@ -588,8 +577,7 @@ public class KaGeneration extends JavaPlugin implements Listener {
 
         // 检查玩家是否有精准采集
         Player player = event.getPlayer();
-        if (player.getGameMode() != GameMode.CREATIVE &&
-                player.getInventory().getItemInMainHand().getEnchantments().containsKey(Enchantment.SILK_TOUCH)) {
+        if (player.getGameMode() != GameMode.CREATIVE && player.getInventory().getItemInMainHand().getEnchantments().containsKey(Enchantment.SILK_TOUCH)) {
             // 有精准采集时不生成水源
             return;
         }
@@ -780,8 +768,7 @@ public class KaGeneration extends JavaPlugin implements Listener {
             if (!previousLanguage.equals(languageCode)) {
                 // 重新加载语言文件
                 loadLangFile();
-                sender.sendMessage(getLang("commands.reload.language_changed",
-                        Collections.singletonMap("language", languageCode)));
+                sender.sendMessage(getLang("commands.reload.language_changed", Collections.singletonMap("language", languageCode)));
             }
 
             // 加载其他配置设置
@@ -791,21 +778,16 @@ public class KaGeneration extends JavaPlugin implements Listener {
 
             // 准备变量替换
             Map<String, String> replacements = new HashMap<>();
-            replacements.put("patterns", worldPatterns.isEmpty() ?
-                    getLang("commands.info.all_worlds") :
-                    String.join(", ", worldPatterns));
+            replacements.put("patterns", worldPatterns.isEmpty() ? getLang("commands.info.all_worlds") : String.join(", ", worldPatterns));
             sender.sendMessage(getLang("commands.info.world_patterns", replacements));
 
-            replacements.put("status", lavaBucketEnabled ?
-                    getLang("status.enabled") : getLang("status.disabled"));
+            replacements.put("status", lavaBucketEnabled ? getLang("status.enabled") : getLang("status.disabled"));
             sender.sendMessage(getLang("commands.info.lava_bucket", replacements));
 
-            replacements.put("status", allowWaterInNether ?
-                    getLang("status.enabled") : getLang("status.disabled"));
+            replacements.put("status", allowWaterInNether ? getLang("status.enabled") : getLang("status.disabled"));
             sender.sendMessage(getLang("commands.info.water_in_nether", replacements));
 
-            replacements.put("status", generateWaterFromIce ?
-                    getLang("status.enabled") : getLang("status.disabled"));
+            replacements.put("status", generateWaterFromIce ? getLang("status.enabled") : getLang("status.disabled"));
             sender.sendMessage(getLang("commands.info.ice_to_water", replacements));
         } catch (Exception e) {
             Map<String, String> replacements = new HashMap<>();
