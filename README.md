@@ -1,5 +1,6 @@
 ﻿# KaGeneration Plugin Documentation
 
+[中文介绍](https://github.com/Katacr/KaGeneration/edit/main/README_CN.md)
 ## Overview
 
 KaGeneration is a Bukkit plugin specifically designed for Minecraft skyblock survival servers. It modifies the blocks generated when water and lava meet, making it possible for stone and cobblestone to be replaced by ores with a certain probability, thus ensuring the smooth progress of survival gameplay. The plugin provides rich configuration options and features, allowing server administrators to customize the ore generation mechanism according to their needs.
