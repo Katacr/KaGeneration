@@ -1,6 +1,7 @@
 package org.katacr.kaGeneration;
 
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
+import net.md_5.bungee.api.ChatMessageType;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
@@ -23,7 +24,12 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.bukkit.entity.Player;
+import net.md_5.bungee.api.ChatMessageType;
+import net.md_5.bungee.api.chat.TextComponent;
 
+import java.awt.*;
+import java.util.List;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import java.io.File;
@@ -290,25 +296,28 @@ public class KaGeneration extends JavaPlugin implements Listener {
         loadGenerationGroups();
     }
 
+    // 发送 ActionBar 消息的辅助方法
+    private void sendActionBar(Player player, String message) {
+        player.spigot().sendMessage(
+                ChatMessageType.ACTION_BAR,
+                new TextComponent(ChatColor.translateAlternateColorCodes('&', message))
+        );
+    }
+
     // 检查世界是否匹配
     private boolean isWorldEnabled(String worldName) {
-        boolean included = false;
-        boolean excluded = false;
+        // 如果没有配置任何模式，所有世界都启用
+        if (compiledPatterns.isEmpty()) return false;
 
+        // 检查世界名称是否匹配任何模式
         for (Pattern pattern : compiledPatterns) {
             Matcher matcher = pattern.matcher(worldName);
             if (matcher.matches()) {
-                // 检查是否为排除模式
-                String patternStr = pattern.pattern();
-                if (patternStr.startsWith("!")) {
-                    excluded = true;
-                } else {
-                    included = true;
-                }
+                return false;
             }
         }
 
-        return included && !excluded;
+        return true;
     }
 
     // 编译世界匹配模式
@@ -463,7 +472,7 @@ public class KaGeneration extends JavaPlugin implements Listener {
         }
 
         // 发送提示消息
-        player.sendMessage(getLang("features.lava_bucket.success"));
+        sendActionBar(player, getLang("features.lava_bucket.success"));
     }
 
     // 允许在下界放置水桶
@@ -509,7 +518,7 @@ public class KaGeneration extends JavaPlugin implements Listener {
         }
 
         // 发送提示消息
-        player.sendMessage(getLang("features.water_in_nether.success"));
+        sendActionBar(player, getLang("features.water_in_nether.success"));
     }
 
     // 添加冰块破坏事件处理
@@ -551,7 +560,7 @@ public class KaGeneration extends JavaPlugin implements Listener {
         }
 
         // 发送提示消息
-        player.sendMessage(getLang("features.ice_to_water.success"));
+        sendActionBar(player, getLang("features.ice_to_water.success"));
     }
 
     // 查找最近的玩家（无范围限制）

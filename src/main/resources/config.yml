@@ -15,7 +15,6 @@ World:              # 留空[]则所有世界启用  | Fill in [] to enable all 
  # - ".*_nether"      # 正则表达式匹配(名称以_nether结尾的世界) | Regular expression matching (world names ending in "_nether")
  # - "resource_.*"     # 正则表达式匹配(名称以resource_开头的世界) | Regular expression matching (world names starting with "resource_")
  # - ".*island.*"      # 正则表达式匹配(名称包含island的世界) | Regular expression matching (world with name including "island")
- # - "!pvp_arena"       # 正则表达式匹配(排除名称pvp_arena的世界) | Regular expression matching (excluding worlds with the name "pvp-arena")
 
 
 Generation:
