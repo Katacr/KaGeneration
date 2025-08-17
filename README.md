@@ -12,6 +12,7 @@ KaGeneration is a Bukkit plugin specifically designed for Minecraft skyblock sur
 - Supports multiple ore types: diamond ore, iron ore, coal ore, etc.
 - Multi-permission group system, where players with different permissions enjoy different ore generation probabilities
 - Priority system: when a player has multiple permissions, the highest priority group is used
+- ItemsAdder block support
 
 ### 2. World Whitelist
 - Only takes effect in configured worlds
