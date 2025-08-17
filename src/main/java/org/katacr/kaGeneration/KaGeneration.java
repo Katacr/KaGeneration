@@ -16,6 +16,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
@@ -23,6 +24,7 @@ import org.bukkit.event.block.BlockFormEvent;
 import org.bukkit.event.player.PlayerBucketEmptyEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
@@ -49,8 +51,7 @@ public class KaGeneration extends JavaPlugin implements Listener {
     // 修改世界白名单存储结构
     private List<String> worldPatterns = new ArrayList<>();
     // 功能开关
-    private boolean itemsAdderEnabled = false;
-    private boolean itemsAdderLoaded = false;
+    private ItemsAdderManager itemsAdderManager;
     private boolean lavaBucketEnabled = true;
     private boolean allowWaterInNether = true;
     private boolean generateWaterFromIce = true;
@@ -68,7 +69,10 @@ public class KaGeneration extends JavaPlugin implements Listener {
         // 加载语言文件
         loadLangFile();
 
-        // 检查 ItemsAdder 是否可用
+        // 初始化 ItemsAdder 管理器
+        itemsAdderManager = new ItemsAdderManager(this);
+
+        // 检查 ItemsAdder 是否可用 - 使用 ItemsAdderManager
         checkItemsAdderAvailability();
 
         // 加载配置
@@ -103,11 +107,8 @@ public class KaGeneration extends JavaPlugin implements Listener {
         try {
             // 检查 ItemsAdder 插件是否安装
             if (Bukkit.getPluginManager().getPlugin("ItemsAdder") != null) {
-                itemsAdderEnabled = true;
-                getLogger().info("检测到 ItemsAdder 插件，尝试挂钩...");
-
-                // 注册事件监听器
-                getServer().getPluginManager().registerEvents(new ItemsAdderListener(), this);
+                // 使用 ItemsAdderManager 设置状态
+                itemsAdderManager.initialize();
             } else {
                 getLogger().info("未检测到 ItemsAdder 插件，相关功能将不可用");
             }
@@ -382,11 +383,19 @@ public class KaGeneration extends JavaPlugin implements Listener {
                 if (oreName.startsWith("ia:")) {
                     // 直接存储字符串标识符
                     int chance = groupSection.getInt(oreName, 0);
+                    if (chance < 0) {
+                        getLogger().warning("无效的概率值: " + oreName + " = " + chance + " (不能为负数)");
+                        chance = 0;
+                    }
                     oreChances.put(oreName, chance);
                 } else {
                     Material material = Material.getMaterial(oreName.toUpperCase());
                     if (material != null) {
                         int chance = groupSection.getInt(oreName, 0);
+                        if (chance < 0) {
+                            getLogger().warning("无效的概率值: " + oreName + " = " + chance + " (不能为负数)");
+                            chance = 0;
+                        }
                         oreChances.put(material, chance);
                     } else {
                         getLogger().warning("无效的矿石类型: " + oreName);
@@ -394,7 +403,7 @@ public class KaGeneration extends JavaPlugin implements Listener {
                 }
             }
             generationGroups.put(groupName, oreChances);
-            getLogger().info("加载权限组: " + groupName + " (优先级: " + priority + ")");
+            getLogger().info(String.format("已加载权限组: %s (优先级: %d, 矿石数量: %d)", groupName, priority, oreChances.size()));
         }
     }
 
@@ -408,9 +417,10 @@ public class KaGeneration extends JavaPlugin implements Listener {
 
         World world = event.getBlock().getWorld();
         if (isWorldEnabled(world.getName())) {
-            // 不在白名单中的世界，按原版处理
             return;
-        }        // 查找附近玩家
+        }
+
+        // 查找附近玩家
         Player nearestPlayer = findNearestPlayer(event.getBlock().getLocation());
 
         // 获取适用的生成组
@@ -434,12 +444,17 @@ public class KaGeneration extends JavaPlugin implements Listener {
                 Object oreType = entry.getKey();
 
                 // 处理ItemsAdder方块
-                if (oreType instanceof String oreId) {
-                    if (oreId.startsWith("ia:") && itemsAdderEnabled && itemsAdderLoaded) {
-                        // 放置ItemsAdder方块
-                        placeItemsAdderBlock(event, oreId.substring(3));
-                        return;
+                if (oreType instanceof String && ((String) oreType).startsWith("ia:")) {
+                    String oreId = ((String) oreType).substring(3);
+
+                    // 使用 ItemsAdderManager 检查状态
+                    if (itemsAdderManager != null && itemsAdderManager.isEnabled() && itemsAdderManager.isLoaded()) {
+                        placeItemsAdderBlock(event, oreId);
+                    } else {
+                        getLogger().warning("尝试生成 ItemsAdder 矿石但 API 未就绪: " + oreId + "。 请尝试重启服务器。");
+                        newState.setType(Material.STONE);
                     }
+                    return;
                 }
                 // 处理原版方块
                 else if (oreType instanceof Material) {
@@ -452,15 +467,24 @@ public class KaGeneration extends JavaPlugin implements Listener {
 
     // 放置ItemsAdder方块
     private void placeItemsAdderBlock(BlockFormEvent event, String blockId) {
+        Block block = event.getBlock();
+        Location location = block.getLocation();
+        World world = block.getWorld();
+
         try {
-            // 获取ItemsAdder方块实例
             CustomBlock customBlock = CustomBlock.getInstance(blockId);
             if (customBlock != null) {
                 // 取消事件（防止原版方块生成）
                 event.setCancelled(true);
 
                 // 放置ItemsAdder方块
-                customBlock.place(event.getBlock().getLocation());
+                customBlock.place(location);
+
+                // 检查是否在下界
+                if (world.getEnvironment() == World.Environment.NETHER) {
+                    // 播放水蒸发效果
+                    playWaterEvaporationEffects(location);
+                }
             } else {
                 // 如果方块未找到，使用原版石头
                 event.getNewState().setType(Material.STONE);
@@ -471,6 +495,40 @@ public class KaGeneration extends JavaPlugin implements Listener {
             event.getNewState().setType(Material.STONE);
             getLogger().warning("放置ItemsAdder方块时出错: " + blockId + " - " + e.getMessage());
         }
+    }
+
+    // 播放水蒸发效果
+    private void playWaterEvaporationEffects(Location location) {
+        World world = location.getWorld();
+        if (world == null) return;
+
+        // 播放音效 - 水蒸发的声音
+        world.playSound(location, Sound.BLOCK_FIRE_EXTINGUISH, // 火焰熄灭的声音
+                0.5f, // 音量
+                2.0f  // 音调
+        );
+
+        // 获取方块中心位置
+        Location center = location.clone().add(0.5, 0.5, 0.5);
+
+        // 播放黑色烟雾粒子
+        world.spawnParticle(Particle.REDSTONE, // 使用REDSTONE粒子来自定义颜色
+                center.clone().add(0, 0.5, 0), // 方块中心上方0.5格
+                25, // 粒子数量
+                0.5, 0.5, 0.5, // 偏移量
+                0.05, // 速度
+                new Particle.DustOptions(Color.BLACK, 1.0f) // 黑色粒子
+        );
+
+        // 播放灰色烟雾粒子
+        world.spawnParticle(Particle.REDSTONE, // 使用REDSTONE粒子来自定义颜色
+                center.clone().add(0, 0.5, 0), // 方块中心上方0.5格
+                15, // 粒子数量
+                0.5, 0.5, 0.5, // 偏移量
+                0.05, // 速度
+                new Particle.DustOptions(Color.GRAY, 1.0f) // 灰色粒子
+        );
+
     }
 
     // 黑曜石转换功能
@@ -523,7 +581,7 @@ public class KaGeneration extends JavaPlugin implements Listener {
         }
 
         // 播放音效
-        String soundName = getLang("features.lava_bucket.sound");
+        String soundName = config.getString("Sound.lava_bucket");
         try {
             Sound sound = Sound.valueOf(soundName);
             player.playSound(player.getLocation(), sound, 1.0f, 1.0f);
@@ -561,7 +619,7 @@ public class KaGeneration extends JavaPlugin implements Listener {
         targetBlock.setType(Material.WATER);
 
         // 播放放置水的声音
-        String soundName = getLang("features.water_in_nether.sound");
+        String soundName = config.getString("Sound.water_in_nether");
         try {
             Sound sound = Sound.valueOf(soundName);
             player.playSound(targetBlock.getLocation(), sound, 1.0f, 1.0f);
@@ -610,7 +668,7 @@ public class KaGeneration extends JavaPlugin implements Listener {
         block.setType(Material.WATER);
 
         // 播放冰块破碎音效
-        String soundName = getLang("features.ice_to_water.sound");
+        String soundName = config.getString("Sound.ice_to_water");
         try {
             Sound sound = Sound.valueOf(soundName);
             player.playSound(block.getLocation(), sound, 1.0f, 1.0f);
@@ -623,15 +681,16 @@ public class KaGeneration extends JavaPlugin implements Listener {
     }
 
     // 查找最近的玩家
-    private Player findNearestPlayer(org.bukkit.Location location) {
-        Player nearest = null;
-        double minDistance = Double.MAX_VALUE;
+    private Player findNearestPlayer(Location location) {
+        List<Player> players = Objects.requireNonNull(location.getWorld()).getPlayers();
+        if (players.isEmpty()) return null;
 
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            // 检查世界是否相同
-            if (!player.getWorld().equals(location.getWorld())) continue;
+        Player nearest = players.get(0);
+        double minDistance = nearest.getLocation().distanceSquared(location);
 
-            double distance = player.getLocation().distance(location);
+        for (int i = 1; i < players.size(); i++) {
+            Player player = players.get(i);
+            double distance = player.getLocation().distanceSquared(location);
             if (distance < minDistance) {
                 minDistance = distance;
                 nearest = player;
@@ -753,9 +812,7 @@ public class KaGeneration extends JavaPlugin implements Listener {
             int chance = entry.getValue();
             double percentage = (double) chance / totalChance * 100;
 
-            String oreName = oreType instanceof Material ?
-                    oreType.toString().toLowerCase() :
-                    oreType.toString();
+            String oreName = oreType instanceof Material ? oreType.toString().toLowerCase() : oreType.toString();
 
             replacements.put("ore", oreName);
             replacements.put("chance", String.valueOf(chance));
@@ -785,6 +842,9 @@ public class KaGeneration extends JavaPlugin implements Listener {
 
             // 加载新的语言设置
             loadLanguageSetting();
+
+            // 初始化 ItemsAdder 状态
+            itemsAdderManager.initialize();
 
             // 检查语言是否变更
             if (!previousLanguage.equals(languageCode)) {
@@ -820,14 +880,77 @@ public class KaGeneration extends JavaPlugin implements Listener {
         }
     }
 
-    public boolean isItemsAdderEnabled() {
-        return itemsAdderEnabled;
-    }
 
-    public boolean isItemsAdderLoaded() {
-        return itemsAdderLoaded;
-    }
+    private static class ItemsAdderManager {
+        private final KaGeneration plugin;
+        private boolean enabled = false;
+        private boolean loaded = false;
+        private ItemsAdderListener listener;
 
+        public ItemsAdderManager(KaGeneration plugin) {
+            this.plugin = plugin;
+            initialize();
+        }
+
+        public void initialize() {
+            // 重置状态
+            enabled = false;
+            loaded = false;
+
+            // 检查 ItemsAdder 插件是否安装
+            Plugin itemsAdderPlugin = Bukkit.getPluginManager().getPlugin("ItemsAdder");
+            if (itemsAdderPlugin != null && itemsAdderPlugin.isEnabled()) {
+                enabled = true;
+                plugin.getLogger().info("检测到 ItemsAdder 插件，尝试挂钩...");
+
+                // 取消注册旧监听器
+                if (listener != null) {
+                    HandlerList.unregisterAll(listener);
+                }
+
+                // 注册新监听器
+                listener = new ItemsAdderListener();
+                plugin.getServer().getPluginManager().registerEvents(listener, plugin);
+
+                // 检查是否已经加载
+                if (isItemsAdderDataLoaded()) {
+                    loaded = true;
+                    plugin.getLogger().info("ItemsAdder 数据已加载完成");
+                }
+            } else {
+                plugin.getLogger().info("未检测到 ItemsAdder 插件，相关功能将不可用");
+            }
+        }
+
+        private boolean isItemsAdderDataLoaded() {
+            try {
+                // 尝试获取一个自定义方块实例
+                CustomBlock customBlock = CustomBlock.getInstance("dirt");
+                return customBlock != null;
+            } catch (Exception e) {
+                return false;
+            }
+        }
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public boolean isLoaded() {
+            return loaded;
+        }
+
+        private class ItemsAdderListener implements Listener {
+            @EventHandler
+            public void onItemsAdderLoad(ItemsAdderLoadDataEvent event) {
+                loaded = true;
+                plugin.getLogger().info("ItemsAdder 数据已加载完成，API 已就绪");
+
+                // 取消注册此监听器
+                HandlerList.unregisterAll(this);
+            }
+        }
+    }
 
     // PlaceholderAPI 扩展类
     private static class KagenerationPlaceholder extends PlaceholderExpansion {
@@ -870,12 +993,4 @@ public class KaGeneration extends JavaPlugin implements Listener {
         }
     }
 
-    // ItemsAdder 事件监听器
-    private class ItemsAdderListener implements Listener {
-        @EventHandler
-        public void onItemsAdderLoad(ItemsAdderLoadDataEvent event) {
-            itemsAdderLoaded = true;
-            // 移除了加载完成日志提示
-        }
-    }
 }

@@ -9,6 +9,11 @@ Setting:
   allow_water_in_nether: false  # 是否允许在下界放置水桶 | Whether to allow placing water buckets in the Nether
   generate_water_from_ice: true  # 是否允许在下界破坏冰块生成水源 | Whether to allow generating water sources by breaking ice in the Nether
 
+Sound:
+  lava_bucket: "ITEM_BUCKET_FILL_LAVA"
+  water_in_nether: "ITEM_BUCKET_EMPTY"
+  ice_to_water: "BLOCK_GLASS_BREAK"
+
 # 世界白名单（仅在这些世界生效） | World Whitelist (Only effective in these worlds)
 World:              # 留空[]则所有世界启用  | Fill in [] to enable all worlds
   - "skyblock"      # 直接匹配 #Directly match
