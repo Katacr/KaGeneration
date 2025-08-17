@@ -18,6 +18,9 @@ permissions:
   kageneration.reload:
     description: 允许重载插件
     default: op
+  kageneration.place:
+    description: 允许使用 /kg place 命令
+    default: op
   kageneration.help:
     description: 允许查看插件帮助
     default: true

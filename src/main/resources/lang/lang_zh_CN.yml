@@ -28,6 +28,13 @@ commands:
     help: "&e/kg help &f- 显示此帮助信息"
     all_permissions: "&7您有权限使用所有命令"
     limited_permissions: "&7您可以使用 info 和 help 命令"
+  place:
+    no_permission: "&c你没有权限使用此命令"
+    invalid_world: "&c无效的世界: &f{world}"
+    invalid_coordinates: "&c无效的坐标，请使用数字"
+    success: "&a已在世界 &f{world} &a的坐标 &f({x}, {y}, {z}) &a放置方块: &f{block}"
+    failure: "&c无法放置方块: &f{block}"
+    error: "&c放置方块时出错: {error}"
   unknown: "&c未知命令，输入 /kg help 查看帮助"
 
 # 功能消息

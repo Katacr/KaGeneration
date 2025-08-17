@@ -28,6 +28,13 @@ commands:
     help: "&e/kg help &f- Show this help information"
     all_permissions: "&7You have permission to use all commands"
     limited_permissions: "&7You can use info and help commands"
+  place:
+    no_permission: "&cYou do not have permission to use this command"
+    invalid_world: "&cInvalid world: &f{world}"
+    invalid_coordinates: "&cInvalid coordinates, please use numbers"
+    success: "&aSuccessfully placed block &f{block} &aat coordinates &f({x}, {y}, {z}) &ain world &f{world}"
+    failure: "&cFailed to place block: &f{block}"
+    error: "&cError placing block: {error}"
   unknown: "&cUnknown command, type /kg help for help"
 
 # Feature messages

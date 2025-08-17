@@ -38,6 +38,7 @@ import java.util.*;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class KaGeneration extends JavaPlugin implements Listener {
 
@@ -240,7 +241,7 @@ public class KaGeneration extends JavaPlugin implements Listener {
 
         // 一级命令补全
         if (args.length == 1) {
-            return StringUtil.copyPartialMatches(args[0], Arrays.asList("reload", "info", "help"), new ArrayList<>());
+            return StringUtil.copyPartialMatches(args[0], Arrays.asList("reload", "info", "help", "place"), new ArrayList<>());
         }
 
         // 二级命令补全（根据一级命令）
@@ -266,8 +267,46 @@ public class KaGeneration extends JavaPlugin implements Listener {
                 }
             }
         }
+        // place 命令补全
+        if (args[0].equalsIgnoreCase("place")) {
+            if (args.length == 2) {
+                // 世界名称补全
+                return Bukkit.getWorlds().stream()
+                        .map(World::getName)
+                        .filter(name -> StringUtil.startsWithIgnoreCase(name, args[1]))
+                        .collect(Collectors.toList());
+            } else if (args.length == 6) {
+                // 方块ID补全
+                List<String> suggestions = getStringList();
+
+                return StringUtil.copyPartialMatches(args[5], suggestions, new ArrayList<>());
+            }
+        }
         // 没有更多参数需要补全
         return Collections.emptyList();
+    }
+
+    private @NotNull List<String> getStringList() {
+        List<String> suggestions = new ArrayList<>();
+
+        // 添加原版方块
+        for (Material material : Material.values()) {
+            if (material.isBlock()) {
+                suggestions.add(material.name().toLowerCase());
+            }
+        }
+
+        // 添加矿石生成组中的方块
+        for (Map<Object, Integer> oreChances : generationGroups.values()) {
+            for (Object oreType : oreChances.keySet()) {
+                if (oreType instanceof String) {
+                    suggestions.add(((String) oreType).toLowerCase());
+                } else if (oreType instanceof Material) {
+                    suggestions.add(((Material) oreType).name().toLowerCase());
+                }
+            }
+        }
+        return suggestions;
     }
 
     @Override
@@ -750,9 +789,138 @@ public class KaGeneration extends JavaPlugin implements Listener {
             return true;
         }
 
+        // 处理放置方块命令
+        if (args[0].equalsIgnoreCase("place") && args.length >= 6) {
+            placeBlockCommand(sender, args);
+            return true;
+        }
+
         // 未知命令
         sender.sendMessage(getLang("commands.unknown"));
         return true;
+    }
+
+    private void placeBlockCommand(CommandSender sender, String[] args) {
+        // 检查权限
+        if (!sender.hasPermission("kageneration.place")) {
+            sender.sendMessage(getLang("commands.place.no_permission"));
+            return;
+        }
+
+        try {
+            // 解析参数
+            String worldName = args[1];
+            double x = Double.parseDouble(args[2]);
+            double y = Double.parseDouble(args[3]);
+            double z = Double.parseDouble(args[4]);
+            String blockId = String.join(" ", Arrays.copyOfRange(args, 5, args.length));
+
+            // 获取世界
+            World world = Bukkit.getWorld(worldName);
+            if (world == null) {
+                Map<String, String> replacements = new HashMap<>();
+                replacements.put("world", worldName);
+                sender.sendMessage(getLang("commands.place.invalid_world", replacements));
+                return;
+            }
+
+            // 创建位置
+            Location location = new Location(world, x, y, z);
+
+            // 放置方块
+            boolean success = placeBlockAtLocation(location, blockId);
+
+            // 发送结果消息
+            Map<String, String> replacements = new HashMap<>();
+            if (success) {
+                replacements.put("world", worldName);
+                replacements.put("x", String.valueOf(x));
+                replacements.put("y", String.valueOf(y));
+                replacements.put("z", String.valueOf(z));
+                replacements.put("block", blockId);
+                sender.sendMessage(getLang("commands.place.success", replacements));
+            } else {
+                replacements.put("block", blockId);
+                sender.sendMessage(getLang("commands.place.failure", replacements));
+            }
+        } catch (NumberFormatException e) {
+            sender.sendMessage(getLang("commands.place.invalid_coordinates"));
+        } catch (Exception e) {
+            Map<String, String> replacements = new HashMap<>();
+            replacements.put("error", e.getMessage());
+            sender.sendMessage(getLang("commands.place.error", replacements));
+        }
+    }
+
+    // 在指定位置放置方块（支持原版和ItemsAdder方块）
+    private boolean placeBlockAtLocation(Location location, String blockId) {
+        World world = location.getWorld();
+        if (world == null) return false;
+
+        Block block = location.getBlock();
+
+        // 处理ItemsAdder方块
+        if (blockId.startsWith("ia:")) {
+            String customBlockId = blockId.substring(3);
+            return placeItemsAdderBlock(location, customBlockId);
+        }
+
+        // 处理原版方块
+        try {
+            Material material = Material.valueOf(blockId.toUpperCase());
+            block.setType(material);
+            return true;
+        } catch (IllegalArgumentException e) {
+            // 尝试使用矿石生成逻辑
+            return tryPlaceUsingGenerationLogic(location, blockId);
+        }
+    }
+
+    // 放置ItemsAdder方块
+    private boolean placeItemsAdderBlock(Location location, String blockId) {
+        if (itemsAdderManager != null && itemsAdderManager.isEnabled() && itemsAdderManager.isLoaded()) {
+            try {
+                CustomBlock customBlock = CustomBlock.getInstance(blockId);
+                if (customBlock != null) {
+                    customBlock.place(location);
+                    return true;
+                }
+            } catch (Exception e) {
+                getLogger().warning("放置ItemsAdder方块时出错: " + blockId + " - " + e.getMessage());
+            }
+        }
+        return false;
+    }
+
+    // 尝试使用矿石生成逻辑放置方块
+    private boolean tryPlaceUsingGenerationLogic(Location location, String blockId) {
+        // 查找适用的生成组
+        Player nearestPlayer = findNearestPlayer(location);
+        String applicableGroup = getApplicableGroup(nearestPlayer);
+
+        // 获取该组的矿石概率
+        Map<Object, Integer> oreChances = generationGroups.get(applicableGroup);
+        if (oreChances == null || oreChances.isEmpty()) return false;
+
+        // 查找匹配的方块
+        for (Object oreType : oreChances.keySet()) {
+            String oreId = oreType.toString();
+
+            // 检查是否匹配
+            if (oreId.equalsIgnoreCase(blockId) ||
+                    (oreType instanceof Material && ((Material) oreType).name().equalsIgnoreCase(blockId))) {
+
+                // 放置方块
+                if (oreType instanceof String && ((String) oreType).startsWith("ia:")) {
+                    return placeItemsAdderBlock(location, ((String) oreType).substring(3));
+                } else if (oreType instanceof Material) {
+                    location.getBlock().setType((Material) oreType);
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     // 显示配置信息
