@@ -1,5 +1,7 @@
 package org.katacr.kaGeneration;
 
+import dev.lone.itemsadder.api.CustomBlock;
+import dev.lone.itemsadder.api.Events.ItemsAdderLoadDataEvent;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -37,7 +39,7 @@ import java.util.regex.Pattern;
 
 public class KaGeneration extends JavaPlugin implements Listener {
 
-    private final Map<String, Map<Material, Integer>> generationGroups = new HashMap<>();
+    private final Map<String, Map<Object, Integer>> generationGroups = new HashMap<>(); // 修改为Object类型
     private final Map<String, Integer> groupPriorities = new HashMap<>();
     // 支持替换的方块类型
     private final List<Material> SUPPORTED_BLOCKS = Arrays.asList(Material.STONE, Material.COBBLESTONE);
@@ -47,6 +49,8 @@ public class KaGeneration extends JavaPlugin implements Listener {
     // 修改世界白名单存储结构
     private List<String> worldPatterns = new ArrayList<>();
     // 功能开关
+    private boolean itemsAdderEnabled = false;
+    private boolean itemsAdderLoaded = false;
     private boolean lavaBucketEnabled = true;
     private boolean allowWaterInNether = true;
     private boolean generateWaterFromIce = true;
@@ -63,6 +67,9 @@ public class KaGeneration extends JavaPlugin implements Listener {
 
         // 加载语言文件
         loadLangFile();
+
+        // 检查 ItemsAdder 是否可用
+        checkItemsAdderAvailability();
 
         // 加载配置
         loadConfigSettings();
@@ -89,6 +96,24 @@ public class KaGeneration extends JavaPlugin implements Listener {
     private void loadLanguageSetting() {
         languageCode = config.getString("Language", "zh_CN");
         getLogger().info("已选择语言: " + languageCode);
+    }
+
+    // 检查 ItemsAdder 可用性
+    private void checkItemsAdderAvailability() {
+        try {
+            // 检查 ItemsAdder 插件是否安装
+            if (Bukkit.getPluginManager().getPlugin("ItemsAdder") != null) {
+                itemsAdderEnabled = true;
+                getLogger().info("检测到 ItemsAdder 插件，尝试挂钩...");
+
+                // 注册事件监听器
+                getServer().getPluginManager().registerEvents(new ItemsAdderListener(), this);
+            } else {
+                getLogger().info("未检测到 ItemsAdder 插件，相关功能将不可用");
+            }
+        } catch (Exception e) {
+            getLogger().warning("检查 ItemsAdder 时出错: " + e.getMessage());
+        }
     }
 
     // 加载语言文件
@@ -326,7 +351,7 @@ public class KaGeneration extends JavaPlugin implements Listener {
         }
     }
 
-    // 加载生成组配置
+    // 加载生成组配置（支持ItemsAdder方块）
     private void loadGenerationGroups() {
         generationGroups.clear();
         groupPriorities.clear();
@@ -348,17 +373,24 @@ public class KaGeneration extends JavaPlugin implements Listener {
             int priority = groupSection.getInt("priority", 0);
             groupPriorities.put(groupName, priority);
 
-            // 获取矿石概率
-            Map<Material, Integer> oreChances = new HashMap<>();
+            // 获取矿石概率（支持ItemsAdder方块）
+            Map<Object, Integer> oreChances = new HashMap<>();
             for (String oreName : groupSection.getKeys(false)) {
                 if (oreName.equals("priority")) continue;
 
-                Material material = Material.getMaterial(oreName.toUpperCase());
-                if (material != null) {
+                // 检查是否为ItemsAdder方块（以"ia:"开头）
+                if (oreName.startsWith("ia:")) {
+                    // 直接存储字符串标识符
                     int chance = groupSection.getInt(oreName, 0);
-                    oreChances.put(material, chance);
+                    oreChances.put(oreName, chance);
                 } else {
-                    getLogger().warning("无效的矿石类型: " + oreName);
+                    Material material = Material.getMaterial(oreName.toUpperCase());
+                    if (material != null) {
+                        int chance = groupSection.getInt(oreName, 0);
+                        oreChances.put(material, chance);
+                    } else {
+                        getLogger().warning("无效的矿石类型: " + oreName);
+                    }
                 }
             }
 
@@ -386,7 +418,7 @@ public class KaGeneration extends JavaPlugin implements Listener {
         String applicableGroup = getApplicableGroup(nearestPlayer);
 
         // 获取该组的矿石概率
-        Map<Material, Integer> oreChances = generationGroups.get(applicableGroup);
+        Map<Object, Integer> oreChances = generationGroups.get(applicableGroup);
         if (oreChances == null || oreChances.isEmpty()) return;
 
         // 计算总概率
@@ -397,12 +429,48 @@ public class KaGeneration extends JavaPlugin implements Listener {
         int random = new Random().nextInt(totalChance);
         int cumulative = 0;
 
-        for (Map.Entry<Material, Integer> entry : oreChances.entrySet()) {
+        for (Map.Entry<Object, Integer> entry : oreChances.entrySet()) {
             cumulative += entry.getValue();
             if (random < cumulative) {
-                newState.setType(entry.getKey());
+                Object oreType = entry.getKey();
+
+                // 处理ItemsAdder方块
+                if (oreType instanceof String oreId) {
+                    if (oreId.startsWith("ia:") && itemsAdderEnabled && itemsAdderLoaded) {
+                        // 放置ItemsAdder方块
+                        placeItemsAdderBlock(event, oreId.substring(3));
+                        return;
+                    }
+                }
+                // 处理原版方块
+                else if (oreType instanceof Material) {
+                    newState.setType((Material) oreType);
+                }
                 return;
             }
+        }
+    }
+
+    // 放置ItemsAdder方块
+    private void placeItemsAdderBlock(BlockFormEvent event, String blockId) {
+        try {
+            // 获取ItemsAdder方块实例
+            CustomBlock customBlock = CustomBlock.getInstance(blockId);
+            if (customBlock != null) {
+                // 取消事件（防止原版方块生成）
+                event.setCancelled(true);
+
+                // 放置ItemsAdder方块
+                customBlock.place(event.getBlock().getLocation());
+            } else {
+                // 如果方块未找到，使用原版石头
+                event.getNewState().setType(Material.STONE);
+                getLogger().warning("未找到ItemsAdder方块: " + blockId);
+            }
+        } catch (Exception e) {
+            // 发生错误时使用原版石头
+            event.getNewState().setType(Material.STONE);
+            getLogger().warning("放置ItemsAdder方块时出错: " + blockId + " - " + e.getMessage());
         }
     }
 
@@ -669,7 +737,7 @@ public class KaGeneration extends JavaPlugin implements Listener {
         sender.sendMessage(groupDisplay);
 
         // 显示当前权限组的矿石概率
-        Map<Material, Integer> oreChances = generationGroups.get(applicableGroup);
+        Map<Object, Integer> oreChances = generationGroups.get(applicableGroup);
         if (oreChances == null || oreChances.isEmpty()) {
             sender.sendMessage(getLang("commands.info.no_ore_config"));
             return;
@@ -681,12 +749,16 @@ public class KaGeneration extends JavaPlugin implements Listener {
         int totalChance = oreChances.values().stream().mapToInt(Integer::intValue).sum();
 
         // 显示每种矿石的概率
-        for (Map.Entry<Material, Integer> entry : oreChances.entrySet()) {
-            Material material = entry.getKey();
+        for (Map.Entry<Object, Integer> entry : oreChances.entrySet()) {
+            Object oreType = entry.getKey();
             int chance = entry.getValue();
             double percentage = (double) chance / totalChance * 100;
 
-            replacements.put("ore", material.toString().toLowerCase());
+            String oreName = oreType instanceof Material ?
+                    oreType.toString().toLowerCase() :
+                    oreType.toString();
+
+            replacements.put("ore", oreName);
             replacements.put("chance", String.valueOf(chance));
             replacements.put("percentage", String.format("%.1f", percentage));
 
@@ -749,6 +821,15 @@ public class KaGeneration extends JavaPlugin implements Listener {
         }
     }
 
+    public boolean isItemsAdderEnabled() {
+        return itemsAdderEnabled;
+    }
+
+    public boolean isItemsAdderLoaded() {
+        return itemsAdderLoaded;
+    }
+
+
     // PlaceholderAPI 扩展类
     private static class KagenerationPlaceholder extends PlaceholderExpansion {
         private final KaGeneration plugin;
@@ -787,6 +868,15 @@ public class KaGeneration extends JavaPlugin implements Listener {
             }
 
             return null;
+        }
+    }
+
+    // ItemsAdder 事件监听器
+    private class ItemsAdderListener implements Listener {
+        @EventHandler
+        public void onItemsAdderLoad(ItemsAdderLoadDataEvent event) {
+            itemsAdderLoaded = true;
+            // 移除了加载完成日志提示
         }
     }
 }
