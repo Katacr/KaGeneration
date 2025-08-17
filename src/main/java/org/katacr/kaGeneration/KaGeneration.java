@@ -393,7 +393,6 @@ public class KaGeneration extends JavaPlugin implements Listener {
                     }
                 }
             }
-
             generationGroups.put(groupName, oreChances);
             getLogger().info("加载权限组: " + groupName + " (优先级: " + priority + ")");
         }
