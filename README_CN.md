@@ -27,6 +27,7 @@ KaGeneration 是一个专为 Minecraft 空岛生存服务器设计的 Bukkit 插
 ### 4. 指令
 - `/kg reload` - 重载插件配置
 - `/kg info` - 显示当前配置状态
+- `/kg place [world] [x] [y] [z] [block] -s` - 在指定位置放置方块 (-s 静默执行)
 - `/kg help` - 显示帮助信息
 
 ### 5. PlaceholderAPI 

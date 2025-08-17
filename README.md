@@ -28,6 +28,7 @@ KaGeneration is a Bukkit plugin specifically designed for Minecraft skyblock sur
 ### 4. Commands
 - `/kg reload` - Reload plugin configuration
 - `/kg info` - Display current configuration status
+- `/kg place [world] [x] [y] [z] [block] -s` - Place blocks at designated locations ("-s" Silent execution)
 - `/kg help` - Display help information
 
 ### 5. PlaceholderAPI
