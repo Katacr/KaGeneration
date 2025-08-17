@@ -502,14 +502,14 @@ public class KaGeneration extends JavaPlugin implements Listener {
         World world = location.getWorld();
         if (world == null) return;
 
+        // 获取方块中心位置
+        Location center = location.clone().add(0.5, 0.5, 0.5);
         // 播放音效 - 水蒸发的声音
-        world.playSound(location, Sound.BLOCK_FIRE_EXTINGUISH, // 火焰熄灭的声音
+        world.playSound(center, // 使用方块中心位置
+                Sound.BLOCK_FIRE_EXTINGUISH, // 火焰熄灭的声音
                 0.5f, // 音量
                 2.0f  // 音调
         );
-
-        // 获取方块中心位置
-        Location center = location.clone().add(0.5, 0.5, 0.5);
 
         // 播放黑色烟雾粒子
         world.spawnParticle(Particle.REDSTONE, // 使用REDSTONE粒子来自定义颜色
