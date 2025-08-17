@@ -25,6 +25,7 @@ commands:
     title: "&6==== KaGeneration 插件帮助 ===="
     reload: "&e/kg reload &f- 重载插件配置"
     info: "&e/kg info &f- 显示当前配置状态"
+    place: "&e/kg place [world] [x] [y] [z] [block] &7-s &f- 在指定位置放置方块[-s 静默执行]"
     help: "&e/kg help &f- 显示此帮助信息"
     all_permissions: "&7您有权限使用所有命令"
     limited_permissions: "&7您可以使用 info 和 help 命令"

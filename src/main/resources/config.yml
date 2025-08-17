@@ -5,21 +5,41 @@
 Language: "en_US"    # 内置语音文件 zh_CN, en_US | Available languages: zh_CN, en_US
 
 Setting:
-  get_lava_bucket: false  # 是否启用空桶右键黑曜石转换岩浆桶 | Whether to enable converting obsidian to lava bucket by right-clicking with an empty bucket
-  allow_water_in_nether: false  # 是否允许在下界放置水桶 | Whether to allow placing water buckets in the Nether
-  generate_water_from_ice: true  # 是否允许在下界破坏冰块生成水源 | Whether to allow generating water sources by breaking ice in the Nether
+  # Whether to play sound and particle effects when placing blocks (true/false)
+  # 使用指令place放置方块时是否播放音效和粒子效果 (true/false)
+  play_block_effects: true
+
+  # Whether to enable obsidian to lava bucket conversion (true/false)
+  # 是否启用黑曜石转换岩浆桶功能 (true/false)
+  get_lava_bucket: true
+
+  # Whether to allow placing water buckets in the Nether (true/false)
+  # 是否允许在下界放置水桶 (true/false)
+  allow_water_in_nether: true
+
+  # Whether to generate water from ice in the Nether (true/false)
+  # 是否在下界通过破坏冰块生成水源 (true/false)
+  generate_water_from_ice: true
 
 Sound:
-  lava_bucket: "ITEM_BUCKET_FILL_LAVA"  # 黑曜石转换岩浆的音效
-  water_in_nether: "ITEM_BUCKET_EMPTY"  # 下界放置水桶的音效
-  ice_to_water: "BLOCK_GLASS_BREAK"   # 破坏冰块生成水源的音效
+  # Sound effect when converting obsidian to lava bucket (Minecraft sound name)
+  # 黑曜石转换岩浆桶时的音效 (Minecraft音效名称)
+  lava_bucket: "ITEM_BUCKET_FILL_LAVA"
+
+  # Sound effect when placing water bucket in the Nether (Minecraft sound name)
+  # 在下界放置水桶时的音效 (Minecraft音效名称)
+  water_in_nether: "ITEM_BUCKET_EMPTY"
+
+  # Sound effect when breaking ice to generate water source (Minecraft sound name)
+  # 破坏冰块生成水源时的音效 (Minecraft音效名称)
+  ice_to_water: "BLOCK_GLASS_BREAK"
 
 # 世界白名单（仅在这些世界生效） | World Whitelist (Only effective in these worlds)
-World:              # 留空[]则所有世界启用  | Fill in [] to enable all worlds
+World: # 留空[]则所有世界启用  | Fill in [] to enable all worlds
   - "skyblock"      # 直接匹配 #Directly match
- # - ".*_nether"      # 正则表达式匹配(名称以_nether结尾的世界) | Regular expression matching (world names ending in "_nether")
- # - "resource_.*"     # 正则表达式匹配(名称以resource_开头的世界) | Regular expression matching (world names starting with "resource_")
- # - ".*island.*"      # 正则表达式匹配(名称包含island的世界) | Regular expression matching (world with name including "island")
+  # - ".*_nether"      # 正则表达式匹配(名称以_nether结尾的世界) | Regular expression matching (world names ending in "_nether")
+  # - "resource_.*"     # 正则表达式匹配(名称以resource_开头的世界) | Regular expression matching (world names starting with "resource_")
+  # - ".*island.*"      # 正则表达式匹配(名称包含island的世界) | Regular expression matching (world with name including "island")
 
 
 Generation:

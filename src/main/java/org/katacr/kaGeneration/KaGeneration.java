@@ -56,6 +56,7 @@ public class KaGeneration extends JavaPlugin implements Listener {
     private boolean lavaBucketEnabled = true;
     private boolean allowWaterInNether = true;
     private boolean generateWaterFromIce = true;
+    private boolean playBlockEffects = true;
     private String languageCode = "zh_CN"; // 默认语言
 
     @Override
@@ -267,7 +268,7 @@ public class KaGeneration extends JavaPlugin implements Listener {
                 }
             }
         }
-        // place 命令补全
+        //place 命令补全
         if (args[0].equalsIgnoreCase("place")) {
             if (args.length == 2) {
                 // 世界名称补全
@@ -277,16 +278,21 @@ public class KaGeneration extends JavaPlugin implements Listener {
                         .collect(Collectors.toList());
             } else if (args.length == 6) {
                 // 方块ID补全
-                List<String> suggestions = getStringList();
+                List<String> suggestions = getStrings();
 
                 return StringUtil.copyPartialMatches(args[5], suggestions, new ArrayList<>());
+            } else if (args.length > 6) {
+                // 静默模式补全
+                if (args[args.length - 1].isEmpty()) {
+                    return Collections.singletonList("-s");
+                }
             }
         }
         // 没有更多参数需要补全
         return Collections.emptyList();
     }
 
-    private @NotNull List<String> getStringList() {
+    private @NotNull List<String> getStrings() {
         List<String> suggestions = new ArrayList<>();
 
         // 添加原版方块
@@ -306,6 +312,9 @@ public class KaGeneration extends JavaPlugin implements Listener {
                 }
             }
         }
+
+        // 添加静默选项
+        suggestions.add("-s");
         return suggestions;
     }
 
@@ -324,6 +333,7 @@ public class KaGeneration extends JavaPlugin implements Listener {
         sender.sendMessage(getLang("commands.help.title"));
         sender.sendMessage(getLang("commands.help.reload"));
         sender.sendMessage(getLang("commands.help.info"));
+        sender.sendMessage(getLang("commands.help.place"));
         sender.sendMessage(getLang("commands.help.help"));
 
         // 添加权限说明
@@ -339,6 +349,9 @@ public class KaGeneration extends JavaPlugin implements Listener {
         // 加载世界白名单
         worldPatterns = config.getStringList("World");
         compileWorldPatterns();
+
+        // 加载效果开关
+        playBlockEffects = config.getBoolean("Setting.play_block_effects", true);
 
         if (worldPatterns.isEmpty()) {
             getLogger().info(getLang("logs.worlds.all"));
@@ -807,20 +820,30 @@ public class KaGeneration extends JavaPlugin implements Listener {
             return;
         }
 
+        // 检查是否静默模式
+        boolean silent = false;
+        List<String> argList = new ArrayList<>(Arrays.asList(args));
+        if (argList.contains("-s")) {
+            silent = true;
+            argList.remove("-s");
+        }
+
         try {
             // 解析参数
-            String worldName = args[1];
-            double x = Double.parseDouble(args[2]);
-            double y = Double.parseDouble(args[3]);
-            double z = Double.parseDouble(args[4]);
-            String blockId = String.join(" ", Arrays.copyOfRange(args, 5, args.length));
+            String worldName = argList.get(1);
+            double x = Double.parseDouble(argList.get(2));
+            double y = Double.parseDouble(argList.get(3));
+            double z = Double.parseDouble(argList.get(4));
+            String blockId = String.join(" ", argList.subList(5, argList.size()));
 
             // 获取世界
             World world = Bukkit.getWorld(worldName);
             if (world == null) {
-                Map<String, String> replacements = new HashMap<>();
-                replacements.put("world", worldName);
-                sender.sendMessage(getLang("commands.place.invalid_world", replacements));
+                if (!silent) {
+                    Map<String, String> replacements = new HashMap<>();
+                    replacements.put("world", worldName);
+                    sender.sendMessage(getLang("commands.place.invalid_world", replacements));
+                }
                 return;
             }
 
@@ -830,25 +853,31 @@ public class KaGeneration extends JavaPlugin implements Listener {
             // 放置方块
             boolean success = placeBlockAtLocation(location, blockId);
 
-            // 发送结果消息
-            Map<String, String> replacements = new HashMap<>();
-            if (success) {
-                replacements.put("world", worldName);
-                replacements.put("x", String.valueOf(x));
-                replacements.put("y", String.valueOf(y));
-                replacements.put("z", String.valueOf(z));
-                replacements.put("block", blockId);
-                sender.sendMessage(getLang("commands.place.success", replacements));
-            } else {
-                replacements.put("block", blockId);
-                sender.sendMessage(getLang("commands.place.failure", replacements));
+            // 如果不是静默模式，发送结果消息
+            if (!silent) {
+                Map<String, String> replacements = new HashMap<>();
+                if (success) {
+                    replacements.put("world", worldName);
+                    replacements.put("x", String.valueOf(x));
+                    replacements.put("y", String.valueOf(y));
+                    replacements.put("z", String.valueOf(z));
+                    replacements.put("block", blockId);
+                    sender.sendMessage(getLang("commands.place.success", replacements));
+                } else {
+                    replacements.put("block", blockId);
+                    sender.sendMessage(getLang("commands.place.failure", replacements));
+                }
             }
         } catch (NumberFormatException e) {
-            sender.sendMessage(getLang("commands.place.invalid_coordinates"));
+            if (!silent) {
+                sender.sendMessage(getLang("commands.place.invalid_coordinates"));
+            }
         } catch (Exception e) {
-            Map<String, String> replacements = new HashMap<>();
-            replacements.put("error", e.getMessage());
-            sender.sendMessage(getLang("commands.place.error", replacements));
+            if (!silent) {
+                Map<String, String> replacements = new HashMap<>();
+                replacements.put("error", e.getMessage());
+                sender.sendMessage(getLang("commands.place.error", replacements));
+            }
         }
     }
 
@@ -862,19 +891,37 @@ public class KaGeneration extends JavaPlugin implements Listener {
         // 处理ItemsAdder方块
         if (blockId.startsWith("ia:")) {
             String customBlockId = blockId.substring(3);
-            return placeItemsAdderBlock(location, customBlockId);
+            boolean success = placeItemsAdderBlock(location, customBlockId);
+
+            // 如果播放效果且放置成功
+            if (success && playBlockEffects) {
+
+                // 播放通用放置效果
+                playWaterEvaporationEffects(location);
+
+            }
+            return success;
         }
 
         // 处理原版方块
         try {
             Material material = Material.valueOf(blockId.toUpperCase());
             block.setType(material);
+
+            // 如果播放效果
+            if (playBlockEffects) {
+
+                // 播放通用放置效果
+                playWaterEvaporationEffects(location);
+
+            }
             return true;
         } catch (IllegalArgumentException e) {
             // 尝试使用矿石生成逻辑
             return tryPlaceUsingGenerationLogic(location, blockId);
         }
     }
+
 
     // 放置ItemsAdder方块
     private boolean placeItemsAdderBlock(Location location, String blockId) {
@@ -1010,9 +1057,6 @@ public class KaGeneration extends JavaPlugin implements Listener {
 
             // 加载新的语言设置
             loadLanguageSetting();
-
-            // 初始化 ItemsAdder 状态
-            itemsAdderManager.initialize();
 
             // 检查语言是否变更
             if (!previousLanguage.equals(languageCode)) {

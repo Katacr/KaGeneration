@@ -26,6 +26,7 @@ commands:
     reload: "&e/kg reload &f- Reload plugin configuration"
     info: "&e/kg info &f- Show current configuration status"
     help: "&e/kg help &f- Show this help information"
+    place: "&e/kg place [world] [x] [y] [z] [block] &7-s &f- Place blocks at designated locations [-s Silent execution]"
     all_permissions: "&7You have permission to use all commands"
     limited_permissions: "&7You can use info and help commands"
   place:
