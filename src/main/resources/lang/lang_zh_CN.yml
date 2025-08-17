@@ -34,13 +34,10 @@ commands:
 features:
   lava_bucket:
     success: "&a已将黑曜石转换为岩浆桶！"
-    sound: "ITEM_BUCKET_FILL_LAVA"
   water_in_nether:
     success: "&a已在下界放置水！"
-    sound: "ITEM_BUCKET_EMPTY"
   ice_to_water:
     success: "&b冰块已融化为水源！"
-    sound: "BLOCK_GLASS_BREAK"
 
 # 日志消息
 logs:

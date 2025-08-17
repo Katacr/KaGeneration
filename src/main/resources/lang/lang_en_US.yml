@@ -34,13 +34,10 @@ commands:
 features:
   lava_bucket:
     success: "&aObsidian converted to lava bucket!"
-    sound: "ITEM_BUCKET_FILL_LAVA"
   water_in_nether:
     success: "&aWater placed in the Nether!"
-    sound: "ITEM_BUCKET_EMPTY"
   ice_to_water:
     success: "&bIce melted into water source!"
-    sound: "BLOCK_GLASS_BREAK"
 
 # Log messages
 logs:
