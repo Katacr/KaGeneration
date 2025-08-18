@@ -31,8 +31,10 @@ KaGeneration 是一个专为 Minecraft 空岛生存服务器设计的 Bukkit 插
 - `/kg help` - 显示帮助信息
 
 ### 5. PlaceholderAPI 
-- `%kageneration_level%` - 返回玩家当前的矿石组名称，如: level2
-- `%kageneration_priority%` - 返回玩家当前的优先级，如: 2
+- `%kageneration_level%` - 返回玩家当前的矿石组名称，如: `level2`
+- `%kageneration_level_display%` - 返回玩家当前的矿石组的自定义名称，如`Lv.2`
+- `%kageneration_priority%` - 返回玩家当前的优先级，如: `2`
+- `%kageneration_chance:物品ID%` - 返回该矿石当前的概率，用法:`%kageneration_chance:diamond_ore%` 返回:`5`
 
 ## 配置文件
 

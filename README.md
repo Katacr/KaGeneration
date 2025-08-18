@@ -32,8 +32,10 @@ KaGeneration is a Bukkit plugin specifically designed for Minecraft skyblock sur
 - `/kg help` - Display help information
 
 ### 5. PlaceholderAPI
-- `%kageneration_level%` - Returns the player's current ore group name, e.g.: level2
-- `%kageneration_priority%` - Returns the player's current priority, e.g.: 2
+- `%kageneration_level%` - Returns the player's current ore group name, e.g.: `level2`
+- `%kageneration_level_display%` - Returns the player's current ore group customize name, e.g.: `Lv.2`
+- `%kageneration_priority%` - Returns the player's current priority, e.g.: `2`
+- `%kageneration_chance:Material%` - Returns the ore chance ，e.g.:`%kageneration_chance:diamond_ore%` Return:`5`
 
 ## Configuration File
 
