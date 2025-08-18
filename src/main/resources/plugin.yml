@@ -21,6 +21,15 @@ permissions:
   kageneration.place:
     description: 允许使用 /kg place 命令
     default: op
+  kageneration.lavabucket:
+    description: 允许使用空桶右键黑曜石转换为岩浆桶
+    default: op
+  kageneration.allowwater:
+    description: 允许在下界放置水桶
+    default: op
+  kageneration.icebreak:
+    description: 允许在下界破坏冰块生成水源
+    default: op
   kageneration.help:
     description: 允许查看插件帮助
     default: true

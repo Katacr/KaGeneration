@@ -272,10 +272,7 @@ public class KaGeneration extends JavaPlugin implements Listener {
         if (args[0].equalsIgnoreCase("place")) {
             if (args.length == 2) {
                 // 世界名称补全
-                return Bukkit.getWorlds().stream()
-                        .map(World::getName)
-                        .filter(name -> StringUtil.startsWithIgnoreCase(name, args[1]))
-                        .collect(Collectors.toList());
+                return Bukkit.getWorlds().stream().map(World::getName).filter(name -> StringUtil.startsWithIgnoreCase(name, args[1])).collect(Collectors.toList());
             } else if (args.length == 6) {
                 // 方块ID补全
                 List<String> suggestions = getStrings();
@@ -589,27 +586,21 @@ public class KaGeneration extends JavaPlugin implements Listener {
         // 检查功能是否启用
         if (!lavaBucketEnabled) return;
 
+        // 检查玩家是否有该组权限
+        Player player = event.getPlayer();
+        if (!player.hasPermission("kageneration.lavabucket")) return;
+
         // 只处理右键点击方块事件
         if (event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
 
-        Player player = event.getPlayer();
         Block clickedBlock = event.getClickedBlock();
         ItemStack itemInHand = player.getInventory().getItemInMainHand();
-        // 检查世界白名单
-        World world = null;
-        if (clickedBlock != null) {
-            world = clickedBlock.getWorld();
-        }
-        if (world != null && isWorldEnabled(world.getName())) {
-            // 不在白名单中的世界，不执行转换
-            return;
-        }
+
         // 检查玩家是否手持空桶
         if (itemInHand.getType() != Material.BUCKET) return;
 
         // 检查点击的方块是否是黑曜石
         if (clickedBlock == null || clickedBlock.getType() != Material.OBSIDIAN) return;
-
 
         // 取消事件（防止桶被使用）
         event.setCancelled(true);
@@ -655,6 +646,9 @@ public class KaGeneration extends JavaPlugin implements Listener {
         Block clickedBlock = event.getBlockClicked();
         Material bucket = event.getBucket();
 
+        // 检查玩家是否有该组权限
+        if (!player.hasPermission("kageneration.allowwater")) return;
+
         // 只处理水桶
         if (bucket != Material.WATER_BUCKET) return;
 
@@ -698,6 +692,10 @@ public class KaGeneration extends JavaPlugin implements Listener {
         if (!generateWaterFromIce) return;
 
         Block block = event.getBlock();
+        Player player = event.getPlayer();
+
+        // 检查玩家是否有该组权限
+        if (!player.hasPermission("kageneration.icebreak")) return;
 
         // 检查是否是冰块
         if (block.getType() != Material.ICE) return;
@@ -707,7 +705,6 @@ public class KaGeneration extends JavaPlugin implements Listener {
 
 
         // 检查玩家是否有精准采集
-        Player player = event.getPlayer();
         if (player.getGameMode() != GameMode.CREATIVE && player.getInventory().getItemInMainHand().getEnchantments().containsKey(Enchantment.SILK_TOUCH)) {
             // 有精准采集时不生成水源
             return;
@@ -954,8 +951,7 @@ public class KaGeneration extends JavaPlugin implements Listener {
             String oreId = oreType.toString();
 
             // 检查是否匹配
-            if (oreId.equalsIgnoreCase(blockId) ||
-                    (oreType instanceof Material && ((Material) oreType).name().equalsIgnoreCase(blockId))) {
+            if (oreId.equalsIgnoreCase(blockId) || (oreType instanceof Material && ((Material) oreType).name().equalsIgnoreCase(blockId))) {
 
                 // 放置方块
                 if (oreType instanceof String && ((String) oreType).startsWith("ia:")) {
@@ -972,36 +968,14 @@ public class KaGeneration extends JavaPlugin implements Listener {
 
     // 显示配置信息
     private void showConfigInfo(CommandSender sender) {
-        sender.sendMessage(getLang("commands.info.title"));
-
-        // 准备变量替换
-        Map<String, String> replacements = new HashMap<>();
-
-        // 显示世界模式
-        if (worldPatterns.isEmpty()) {
-            replacements.put("patterns", getLang("commands.info.all_worlds"));
-        } else {
-            replacements.put("patterns", String.join(", ", worldPatterns));
-        }
-        sender.sendMessage(getLang("commands.info.world_patterns", replacements));
-
-        // 显示功能状态
-        replacements.put("status", lavaBucketEnabled ? getLang("status.enabled") : getLang("status.disabled"));
-        sender.sendMessage(getLang("commands.info.lava_bucket", replacements));
-
-        replacements.put("status", allowWaterInNether ? getLang("status.enabled") : getLang("status.disabled"));
-        sender.sendMessage(getLang("commands.info.water_in_nether", replacements));
-
-        replacements.put("status", generateWaterFromIce ? getLang("status.enabled") : getLang("status.disabled"));
-        sender.sendMessage(getLang("commands.info.ice_to_water", replacements));
-
-        // 获取当前权限组信息
+        // 获取适用的权限组
         String applicableGroup = "default";
         String groupDisplay;
 
         if (sender instanceof Player player) {
             applicableGroup = getApplicableGroup(player);
-            replacements.put("group", applicableGroup);
+            Map<String, String> replacements = new HashMap<>();
+            replacements.put("group", getGroupLocalizedName(applicableGroup));
             groupDisplay = getLang("commands.info.player_group", replacements);
         } else {
             groupDisplay = getLang("commands.info.default_group");
@@ -1027,8 +1001,10 @@ public class KaGeneration extends JavaPlugin implements Listener {
             int chance = entry.getValue();
             double percentage = (double) chance / totalChance * 100;
 
-            String oreName = oreType instanceof Material ? oreType.toString().toLowerCase() : oreType.toString();
+            // 获取矿石本地化名称
+            String oreName = getOreLocalizedName(oreType);
 
+            Map<String, String> replacements = new HashMap<>();
             replacements.put("ore", oreName);
             replacements.put("chance", String.valueOf(chance));
             replacements.put("percentage", String.format("%.1f", percentage));
@@ -1036,8 +1012,37 @@ public class KaGeneration extends JavaPlugin implements Listener {
             sender.sendMessage(getLang("commands.info.ore_chance", replacements));
         }
 
-        replacements.put("total", String.valueOf(totalChance));
-        sender.sendMessage(getLang("commands.info.total_chance", replacements));
+        Map<String, String> totalReplacements = new HashMap<>();
+        totalReplacements.put("total", String.valueOf(totalChance));
+        sender.sendMessage(getLang("commands.info.total_chance", totalReplacements));
+    }
+
+    // 获取矿石的本地化名称
+    private String getOreLocalizedName(Object oreType) {
+        String oreKey;
+
+        if (oreType instanceof Material) {
+            oreKey = ((Material) oreType).name().toLowerCase();
+        } else if (oreType instanceof String) {
+            oreKey = ((String) oreType).toLowerCase();
+        } else {
+            oreKey = oreType.toString().toLowerCase();
+        }
+
+        // 尝试从语言文件获取自定义名称
+        String localizedName = langConfig.getString("customize.ore." + oreKey);
+
+        // 如果没有找到自定义名称，使用原始ID
+        return localizedName != null ? localizedName : oreKey;
+    }
+
+    // 获取权限组本地化名称
+    private String getGroupLocalizedName(String groupName) {
+        // 尝试从语言文件获取自定义名称
+        String localizedName = langConfig.getString("customize.level." + groupName.toLowerCase());
+
+        // 如果没有找到自定义名称，使用原始组名
+        return localizedName != null ? localizedName : groupName;
     }
 
     private void reloadConfig(CommandSender sender) {

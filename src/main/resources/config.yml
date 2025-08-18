@@ -57,7 +57,7 @@ Generation:
     iron_ore: 10
     coal_ore: 10
     stone: 70
-    ia:test_block: 5  # ItemsAdder 方块支持 | ItemsAdder block support
+    ia:tin_ore: 5  # ItemsAdder 方块支持 | ItemsAdder block support
 
   # 等级2 - 需要权限 kageneration.level2 | Level 2 - Requires permission: kageneration.level2
   level2:
