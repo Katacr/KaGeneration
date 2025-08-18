@@ -1097,6 +1097,58 @@ public class KaGeneration extends JavaPlugin implements Listener {
         }
     }
 
+    // 获取玩家的组显示名称
+    public String getPlayerGroupDisplayName(Player player) {
+        String groupName = getApplicableGroup(player);
+        return getGroupLocalizedName(groupName);
+    }
+
+    // 获取玩家适用组中特定矿石的概率
+    public int getPlayerOreChance(Player player, String oreName) {
+        // 获取适用的权限组
+        String applicableGroup = getApplicableGroup(player);
+
+        // 获取该组的矿石概率配置
+        Map<Object, Integer> oreChances = generationGroups.get(applicableGroup);
+        if (oreChances == null || oreChances.isEmpty()) {
+            return 0;
+        }
+
+        // 尝试匹配矿石名称
+        for (Map.Entry<Object, Integer> entry : oreChances.entrySet()) {
+            Object oreType = entry.getKey();
+
+            // 检查矿石名称是否匹配
+            if (oreTypeMatches(oreType, oreName)) {
+                return entry.getValue();
+            }
+        }
+
+        // 没有找到匹配的矿石
+        return 0;
+    }
+
+    // 检查矿石类型是否匹配名称
+    private boolean oreTypeMatches(Object oreType, String oreName) {
+        // 处理原版方块
+        if (oreType instanceof Material material) {
+            return material.name().equalsIgnoreCase(oreName);
+        }
+
+        // 处理字符串类型的矿石（如ItemsAdder方块）
+        if (oreType instanceof String oreId) {
+
+            // 检查是否完全匹配
+            if (oreId.equalsIgnoreCase(oreName)) {
+                return true;
+            }
+
+            // 检查是否匹配不带命名空间的名称
+            return oreId.startsWith("ia:") && oreId.substring(3).equalsIgnoreCase(oreName);
+        }
+
+        return false;
+    }
 
     private static class ItemsAdderManager {
         private final KaGeneration plugin;
@@ -1204,6 +1256,17 @@ public class KaGeneration extends JavaPlugin implements Listener {
             // 处理 %kageneration_priority% 变量
             if ("priority".equalsIgnoreCase(identifier)) {
                 return String.valueOf(plugin.getPlayerPriority(player));
+            }
+
+            // 处理 %kageneration_level_display% 变量 - 返回自定义组名
+            if ("level_display".equalsIgnoreCase(identifier)) {
+                return plugin.getPlayerGroupDisplayName(player);
+            }
+
+            // 处理 %kageneration_chance:ore_name% 变量 - 返回矿石概率
+            if (identifier.startsWith("chance:")) {
+                String oreName = identifier.substring(7); // 移除 "chance:" 前缀
+                return String.valueOf(plugin.getPlayerOreChance(player, oreName));
             }
 
             return null;
