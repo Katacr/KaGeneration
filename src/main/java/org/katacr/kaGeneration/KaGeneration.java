@@ -983,23 +983,40 @@ public class KaGeneration extends JavaPlugin implements Listener {
 
         sender.sendMessage(groupDisplay);
 
-        // 显示当前权限组的矿石概率
+        // 获取当前权限组的矿石概率
         Map<Object, Integer> oreChances = generationGroups.get(applicableGroup);
         if (oreChances == null || oreChances.isEmpty()) {
             sender.sendMessage(getLang("commands.info.no_ore_config"));
             return;
         }
 
+        // 过滤掉概率为0的矿石
+        List<Map.Entry<Object, Integer>> filteredOres = new ArrayList<>();
+        int totalChance = 0;
+
+        for (Map.Entry<Object, Integer> entry : oreChances.entrySet()) {
+            if (entry.getValue() > 0) {
+                filteredOres.add(entry);
+                totalChance += entry.getValue();
+            }
+        }
+
+        // 如果没有概率大于0的矿石
+        if (filteredOres.isEmpty()) {
+            sender.sendMessage(getLang("commands.info.no_positive_chance_ores"));
+            return;
+        }
+
         sender.sendMessage(getLang("commands.info.ore_chances_title"));
 
-        // 计算总概率
-        int totalChance = oreChances.values().stream().mapToInt(Integer::intValue).sum();
+        // 按概率降序排序
+        filteredOres.sort((a, b) -> b.getValue().compareTo(a.getValue()));
 
         // 显示每种矿石的概率
-        for (Map.Entry<Object, Integer> entry : oreChances.entrySet()) {
+        for (Map.Entry<Object, Integer> entry : filteredOres) {
             Object oreType = entry.getKey();
             int chance = entry.getValue();
-            double percentage = (double) chance / totalChance * 100;
+            double percentage = totalChance > 0 ? (double) chance / totalChance * 100 : 0;
 
             // 获取矿石本地化名称
             String oreName = getOreLocalizedName(oreType);
